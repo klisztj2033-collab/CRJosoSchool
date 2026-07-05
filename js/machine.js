@@ -307,14 +307,17 @@ const Machine = (() => {
     AudioMgr.playBgm("reach");
     Screen.reelsVisible(false);
     Screen.miniDigits(true, `${CHARACTERS[symbols[0]].num} ● ${CHARACTERS[symbols[2]].num}`);
-    // まず1枚絵を明るくクリア表示（動画は重ねない＝1回は完全表示）
+    // まず1枚絵を明るくクリア表示（cover・余白なし）。panなら左端(石川)から
     Screen.setBg(sp.bg, false);
+    if (sp.pan) Screen.setBgPos("0% 50%");
     await Screen.reachTitle(sp.title, 2200, "sp");
     // その後、うっすらキラキラ背景動画を重ねる（1枚絵は透けて見える）
     Screen.playVideo("kiraBlue", { loop: true, opacity: 0.35 });
 
     // ストーリーテロップ＋カットイン
     for (let i = 0; i < sp.lines.length; i++) {
+      // panSP：左(石川)を映したあと、右(西山)へカメラを移動
+      if (sp.pan && i === 2) Screen.panBg("0% 50%", "100% 50%", 1600);
       await Screen.telop(sp.lines[i], 1500, "story");
       if (i === 1 && sp.chars[0]) {
         // キラを一旦止めてキャラを見せる。カットイン動画は短い導入のみ＆薄め
@@ -330,7 +333,8 @@ const Machine = (() => {
       Screen.stopVideo();
       await doConfirm(symbols);
       Screen.confirmBg(false);
-      Screen.setBg(sp.bg, false, true);
+      Screen.setBg(sp.bg, false);
+      if (sp.pan) Screen.setBgPos("100% 50%");
     }
 
     if (isSPSP) {
@@ -343,7 +347,7 @@ const Machine = (() => {
       Screen.glowFlash("gold", 2400);   // SPSP発展：金点灯（激アツ）
       await Screen.reachTitle(SPSP_REACH.title, 2000, "spsp");
       // 小丹の選挙1枚絵
-      Screen.setBg(SPSP_IMGS.kotan, false, true);
+      Screen.setBg(SPSP_IMGS.kotan, false);
       await Screen.telop(SPSP_REACH.lines[0], 1600, "story hot");
       // VS 3D文字アニメーション
       AudioMgr.se("kyuin3", 0.6);
@@ -351,7 +355,7 @@ const Machine = (() => {
       Screen.playVideo("vs3d", { front: true, ms: 2400 });
       await wait(2200);
       // 伊藤輝明の選挙1枚絵
-      Screen.setBg(SPSP_IMGS.ito, false, true);
+      Screen.setBg(SPSP_IMGS.ito, false);
       await Screen.telop(SPSP_REACH.lines[1], 1600, "story hot");
       await Screen.telop(SPSP_REACH.lines[2], 1500, "story hot");
       // PUSHボタン

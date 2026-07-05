@@ -17,6 +17,26 @@ const Screen = (() => {
     bg.style.filter = dark ? "brightness(0.55)" : "brightness(1)";
     bg.style.backgroundSize = fit ? "contain" : "cover";
     bg.classList.toggle("fit", fit);
+    // パンの状態をリセット（余白なしのcover表示に戻す）
+    bg.style.transition = "none";
+    bg.style.backgroundPosition = "center";
+  }
+
+  // 背景の表示位置を即時セット（cover表示のままカメラ位置を変える）
+  function setBgPos(pos) {
+    const bg = $("lcd-bg");
+    bg.style.transition = "none";
+    bg.style.backgroundPosition = pos;
+  }
+
+  // カメラパン：fromPos → toPos へ ms かけて移動（cover表示・余白なし）
+  function panBg(fromPos, toPos, ms = 3000) {
+    const bg = $("lcd-bg");
+    bg.style.transition = "none";
+    bg.style.backgroundPosition = fromPos;
+    void bg.offsetWidth;   // リフロー
+    bg.style.transition = `background-position ${ms}ms ease-in-out`;
+    bg.style.backgroundPosition = toPos;
   }
 
   function setSymbol(i, charIdx) {
@@ -349,7 +369,7 @@ const Screen = (() => {
   }
 
   return {
-    wait, setBg, setSymbol, startReel, stopReel, startAll, reelsVisible,
+    wait, setBg, setBgPos, panBg, setSymbol, startReel, stopReel, startAll, reelsVisible,
     miniDigits, flash, telop, reachTitle, cutin, mobYokoku, pushButton,
     modeBanner, stCount, lcdMsg, renderHolds, glow, glowFlash, fxKira,
     playVideo, stopVideo, tenpaiPose, winPose, clearPose, spinDisplay, confirmBg,

@@ -111,7 +111,7 @@ const VIDEO_FX = {
 const SP_REACHES = [
   {
     id: "kouron", title: "口論バトル 石川 VS 西山", bg: "imagin/口論バトル 石川VS西山.png",
-    chars: ["ishikawa", "nishiyama"], grade: "strong",
+    chars: ["ishikawa", "nishiyama"], grade: "strong", pan: true,   // 左(石川)→右(西山)へカメラパン
     lines: ["帰りの常磐線、今日も口論が始まった……", "「は？論理的に考えて俺が正しいんだが」", "「お前それ昨日と言ってること違うぞ！」", "決着の行方は──"],
   },
   {
