@@ -3,6 +3,10 @@
 『常総学院シミュレーター』のキャラクター・背景・BGM/SE素材を使用した、
 ブラウザで動作するパチンコ実機シミュレーターです。
 
+## Web公開版
+
+https://klisztj2033-collab.github.io/CRJosoSchool/
+
 ## 遊び方
 
 ローカルサーバーを起動してブラウザで開きます（Node/Python不要）:
