@@ -360,7 +360,7 @@ body {
   pointer-events: none;
   mix-blend-mode: screen;
 }
-#fx-video.back { z-index: 2; opacity: .85; }   /* 背景演出（リールの後ろ） */
+#fx-video.back { z-index: 2; opacity: .4; }    /* 背景演出：薄めにして1枚絵を透けさせる */
 #fx-video.front { z-index: 25; }               /* カットイン等（リールの前） */
 
 /* 光エフェクト（キラキラ集中線） */

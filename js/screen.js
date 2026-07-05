@@ -245,7 +245,7 @@ const Screen = (() => {
   function playVideo(key, opts = {}) {
     const src = VIDEO_FX[key];
     if (!fxVideo || !src) return;
-    const { front = false, ms = 0, loop = false } = opts;
+    const { front = false, ms = 0, loop = false, opacity = null } = opts;
     fxVideo.onerror = () => stopVideo();   // ファイルが無ければ無視
     fxVideo.onended = () => { if (!loop) stopVideo(); };
     if (fxVideo.dataset.key !== key) {
@@ -253,6 +253,7 @@ const Screen = (() => {
       fxVideo.dataset.key = key;
     }
     fxVideo.className = front ? "front" : "back";
+    fxVideo.style.opacity = (opacity != null) ? opacity : "";  // 指定時はCSSを上書き
     fxVideo.loop = loop;
     fxVideo.muted = true;
     try { fxVideo.currentTime = 0; } catch (e) {}
@@ -266,6 +267,7 @@ const Screen = (() => {
     if (!fxVideo) return;
     fxVideo.pause();
     fxVideo.className = "hidden";
+    fxVideo.style.opacity = "";
     if (fxVideoTimer) { clearTimeout(fxVideoTimer); fxVideoTimer = null; }
   }
 

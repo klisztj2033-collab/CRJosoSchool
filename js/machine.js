@@ -305,17 +305,21 @@ const Machine = (() => {
     AudioMgr.playBgm("reach");
     Screen.reelsVisible(false);
     Screen.miniDigits(true, `${CHARACTERS[symbols[0]].num} ● ${CHARACTERS[symbols[2]].num}`);
-    Screen.setBg(sp.bg, true);
-    Screen.playVideo("kiraBlue", { loop: true });   // SP中はキラキラ背景動画
+    // まず1枚絵を明るくクリア表示（動画は重ねない＝1回は完全表示）
+    Screen.setBg(sp.bg, false);
     await Screen.reachTitle(sp.title, 2200, "sp");
+    // その後、うっすらキラキラ背景動画を重ねる（1枚絵は透けて見える）
+    Screen.playVideo("kiraBlue", { loop: true, opacity: 0.35 });
 
     // ストーリーテロップ＋カットイン
     for (let i = 0; i < sp.lines.length; i++) {
       await Screen.telop(sp.lines[i], 1500, "story");
       if (i === 1 && sp.chars[0]) {
-        Screen.playVideo("cutinBlue", { front: true, ms: 1600 });  // カットイン動画
+        // キラを一旦止めてキャラを見せる。カットイン動画は短い導入のみ＆薄め
+        Screen.stopVideo();
+        Screen.playVideo("cutinBlue", { front: true, ms: 650, opacity: 0.5 });
         await Screen.cutin(sp.chars[0], "", 1500, sp.grade === "strong" ? "hot" : "");
-        Screen.playVideo("kiraBlue", { loop: true });
+        Screen.playVideo("kiraBlue", { loop: true, opacity: 0.35 });
       }
     }
 
@@ -324,7 +328,7 @@ const Machine = (() => {
       Screen.stopVideo();
       await doConfirm(symbols);
       Screen.confirmBg(false);
-      Screen.setBg(sp.bg, true);
+      Screen.setBg(sp.bg, false);
     }
 
     if (isSPSP) {
