@@ -59,6 +59,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File serve.ps1
 | キャラボイス | [VOICEVOX](https://voicevox.hiroshiba.jp/)（ずんだもん） | 「VOICEVOX:ずんだもん」表記 |
 | 光エフェクト・背景 | [OKUMONO](https://sozaino.site/) | 利用規約に基づく |
 | 空背景 | [Pixabay](https://pixabay.com/) | Pixabay Content License |
+| 演出動画 | [動画AC](https://video-ac.com/) | 利用規約に基づく |
 | キャラ・写真・一部SE/BGM | 常総学院シミュレーター | 自作素材 |
 
 ※ DOVA-SYNDROME・ぴぽや倉庫・空想曲線はダウンロードに対話操作（規約同意・BOOTHログイン等）が必要なため未取得。追加する場合は手動でダウンロードし `assets/` 配下に置いて `js/audio.js` / `js/spec.js` にパスを追記してください。
