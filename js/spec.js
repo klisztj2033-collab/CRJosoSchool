@@ -103,6 +103,7 @@ const VIDEO_FX = {
   cutinBlue: "movie/青色のカットインエフェクト.mp4",     // 通常カットイン
   gekiha:    "movie/撃破３D文字アニメーション.mp4",       // 当り決着
   jikai:     "movie/次回３D文字アニメーション.mp4",       // ハズレ決着
+  vs3d:      "movie/VS３D文字アニメーション.mp4",         // 生徒会長決戦VS
 };
 
 /* ---------- SPリーチ定義 ----------
@@ -124,9 +125,14 @@ const SP_REACHES = [
     lines: ["電車が遅延！ 遅刻の危機──", "「……別にいいだろ、どこで食っても」", "土浦駅の階段を駆け上がれ！"],
   },
   {
-    id: "taiiku", title: "体育祭 大声援リレー", bg: "assets/bg/okumono_sky_sougen.png",
+    id: "taiiku", title: "体育祭 大声援リレー", bg: "imagin/体育祭 大声援リレー.png",
     chars: ["kuno"], grade: "strong",
     lines: ["体育祭、クラス対抗リレー最終走者！", "「うおおおおい！！聞いてくれ！！」", "大声援がグラウンドを揺らす──！"],
+  },
+  {
+    id: "letter", title: "ラブレター大作戦 ちのね", bg: "imagin/ちのね_ラブレター.png",
+    chars: ["chinone"], grade: "strong",
+    lines: ["下駄箱にそっと忍ばせた一通の手紙──", "「大森くん！大森君！」", "勇気を出して、想いは届くのか──！？"],
   },
   {
     id: "nico", title: "パソコン室 動画鑑賞会", bg: BGS.pc,
@@ -144,6 +150,33 @@ const SPSP_REACH = {
 
 /* 激熱確定背景（出現＝大当り確定のプレミア背景） */
 const CONFIRM_BG = "imagin/激熱確定背景_ちのね.png";
+
+/* 大当り確定演出用の各キャラ全身画像（大当り画面で大きく背景のように表示） */
+const CONFIRM_CHAR_IMGS = {
+  kuno:      "imagin/久野_大当り確定演出用.png",
+  akagami:   "imagin/赤上_大当り確定演出用.png",
+  ishikawa:  "imagin/石川_大当り確定演出用.png",
+  nishiyama: "imagin/西山_大当り確定演出用.png",
+  kotan:     "imagin/小丹_大当り確定演出用.png",
+  chinone:   "imagin/ちのね_大当り確定演出用.png",
+  // 小島・矢吹は確定演出用未用意 → 通常立ち絵で代用
+  kojima:    "assets/character/小島.png",
+  yabuki:    "assets/character/矢吹.png",
+};
+
+/* 文字系画像（演出中に大きくオーバーレイ表示） */
+const TEXT_IMGS = {
+  reach:       "imagin/リーチ文字.png",
+  migiuchi:    "imagin/右打ち文字.png",
+  rushKakutei: "imagin/常総RUSH確定文字.png",
+  atari:       "imagin/大当たり文字.png",
+};
+
+/* 生徒会長決戦（SPSP）用の選挙1枚絵 */
+const SPSP_IMGS = {
+  kotan: "imagin/小丹_選挙.png",
+  ito:   "imagin/伊藤輝明_選挙.png",
+};
 
 /* 群予告の出現判定（当落連動で信頼度を約60%に） */
 function decideMob(isWin, isRush) {

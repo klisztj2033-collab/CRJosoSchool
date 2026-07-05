@@ -221,20 +221,28 @@ const Screen = (() => {
   }
 
   /* ---------- 大当り画面 ---------- */
+  function bigCharImg(charKey) {
+    return (CONFIRM_CHAR_IMGS && CONFIRM_CHAR_IMGS[charKey]) ||
+           (charByKey(charKey) || CHARACTERS[0]).img;
+  }
   function jackpotShow(title, charKey) {
     const jl = $("jackpot-layer");
     jl.classList.remove("hidden");
     $("jp-title").textContent = title;
     $("jp-round").textContent = "";
     $("jp-balls").textContent = "";
-    const c = charByKey(charKey) || CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
-    $("jp-char").querySelector("img").src = c.img;
+    // 当りキャラの確定演出用画像を大きく背景表示
+    const bg = $("jp-charbg");
+    bg.src = bigCharImg(charKey);
+    bg.style.animation = "none";
+    void bg.offsetWidth;
+    bg.style.animation = "";
   }
   function jackpotRound(text) { $("jp-round").textContent = text; }
   function jackpotBalls(text) { $("jp-balls").textContent = text; }
   function jackpotChar(charKey) {
-    const c = charByKey(charKey);
-    if (c) $("jp-char").querySelector("img").src = c.img;
+    const bg = $("jp-charbg");
+    if (bg) bg.src = bigCharImg(charKey);
   }
   function jackpotHide() { $("jackpot-layer").classList.add("hidden"); }
 
@@ -269,6 +277,24 @@ const Screen = (() => {
     fxVideo.className = "hidden";
     fxVideo.style.opacity = "";
     if (fxVideoTimer) { clearTimeout(fxVideoTimer); fxVideoTimer = null; }
+  }
+
+  /* ---------- 文字系画像オーバーレイ ---------- */
+  let txtImgTimer = null;
+  function showTextImg(key, ms = 1400) {
+    const el = $("txt-img");
+    if (!el || !TEXT_IMGS[key]) return;
+    el.src = TEXT_IMGS[key];
+    el.classList.remove("hidden");
+    el.classList.add("show");
+    void el.offsetWidth;   // アニメ再始動
+    if (txtImgTimer) clearTimeout(txtImgTimer);
+    if (ms > 0) txtImgTimer = setTimeout(() => { el.classList.add("hidden"); el.classList.remove("show"); }, ms);
+  }
+  function hideTextImg() {
+    const el = $("txt-img");
+    if (el) { el.classList.add("hidden"); el.classList.remove("show"); }
+    if (txtImgTimer) { clearTimeout(txtImgTimer); txtImgTimer = null; }
   }
 
   /* ---------- 光エフェクト（キラキラ集中線） ---------- */
@@ -324,6 +350,7 @@ const Screen = (() => {
     miniDigits, flash, telop, reachTitle, cutin, mobYokoku, pushButton,
     modeBanner, stCount, lcdMsg, renderHolds, glow, glowFlash, fxKira,
     playVideo, stopVideo, tenpaiPose, winPose, clearPose, spinDisplay, confirmBg,
+    showTextImg, hideTextImg,
     jackpotShow, jackpotRound, jackpotBalls, jackpotChar, jackpotHide,
     get current() { return current; },
   };

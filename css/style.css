@@ -363,6 +363,25 @@ body {
 #fx-video.back { z-index: 2; opacity: .4; }    /* 背景演出：薄めにして1枚絵を透けさせる */
 #fx-video.front { z-index: 25; }               /* カットイン等（リールの前） */
 
+/* 文字系画像オーバーレイ（リーチ／大当り／RUSH確定／右打ち） */
+#txt-img {
+  position: absolute;
+  left: 50%; top: 44%;
+  transform: translate(-50%, -50%);
+  max-width: 92%;
+  max-height: 40%;
+  width: auto; height: auto;
+  z-index: 24;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 8px rgba(0,0,0,0.7));
+}
+#txt-img.show { animation: txtImgPop .35s cubic-bezier(.3,1.5,.5,1); }
+@keyframes txtImgPop {
+  0% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+  60% { transform: translate(-50%, -50%) scale(0.92); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
 /* 光エフェクト（キラキラ集中線） */
 #fx-kira {
   position: absolute;
@@ -436,6 +455,26 @@ body {
   align-items: center;
   padding: 50px 24px 84px;
 }
+/* 大当り確定演出用キャラを大きく背景のように表示 */
+#jp-charbg {
+  position: absolute;
+  left: 50%; bottom: 0;
+  transform: translateX(-50%);
+  height: 96%;
+  width: auto;
+  max-width: 130%;
+  object-fit: contain;
+  object-position: bottom;
+  z-index: 0;
+  filter: drop-shadow(0 0 18px rgba(255,255,255,0.45));
+  animation: jpCharIn .5s ease-out;
+  pointer-events: none;
+}
+@keyframes jpCharIn {
+  0% { transform: translateX(-50%) scale(1.15); opacity: 0; }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+#jackpot-layer > :not(#jp-charbg) { position: relative; z-index: 1; }
 #jp-title {
   font-size: 24px;
   font-weight: 900;
@@ -449,18 +488,7 @@ body {
   color: #fff;
   margin-top: 4px;
 }
-#jp-char {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  margin: 4px 0;
-}
-#jp-char img {
-  max-height: 130px;
-  filter: drop-shadow(0 0 12px rgba(255,255,255,0.6));
-}
+#jp-char { display: none; }  /* 大キャラ背景(#jp-charbg)に置き換え */
 #jp-balls {
   font-size: 15px;
   font-weight: bold;

@@ -272,7 +272,8 @@ const Machine = (() => {
       AudioMgr.se("reach", 0.5);
       AudioMgr.voice("reach");
       Screen.glowFlash("blue", 1200);   // リーチ成立：青点灯
-      await Screen.reachTitle("リーチ！", 1100, "normal");
+      Screen.showTextImg("reach", 1200);  // リーチ文字画像
+      await wait(1100);
       if (seven) await sevenTenpaiCue();
     }
     // 確定背景（当り時のみ／7図柄なら必ず）
@@ -297,7 +298,8 @@ const Machine = (() => {
     AudioMgr.se("reach", 0.5);
     AudioMgr.voice("reach");
     Screen.glowFlash("blue", 1200);   // リーチ成立：青点灯
-    await Screen.reachTitle("リーチ！", 1000, "normal");
+    Screen.showTextImg("reach", 1100);  // リーチ文字画像
+    await wait(1000);
     if (seven) await sevenTenpaiCue();
 
     // SP発展
@@ -332,18 +334,26 @@ const Machine = (() => {
     }
 
     if (isSPSP) {
-      // SPSP発展（最終決戦）
+      // SPSP発展（生徒会長決戦 小丹 VS 伊藤輝明）
+      Screen.stopVideo();
       Screen.flash("#ff4040", 500);
       AudioMgr.se("kyuin3", 0.55);
       AudioMgr.voice("atsui");
       Screen.fxKira("kiraLine1", 2000);
       Screen.glowFlash("gold", 2400);   // SPSP発展：金点灯（激アツ）
-      Screen.playVideo("cutinRed", { front: true, ms: 2400 });   // 赤カットイン動画
-      await Screen.reachTitle(SPSP_REACH.title, 2400, "spsp");
-      Screen.setBg(SPSP_REACH.bg, true);
-      for (const line of SPSP_REACH.lines) {
-        await Screen.telop(line, 1400, "story hot");
-      }
+      await Screen.reachTitle(SPSP_REACH.title, 2000, "spsp");
+      // 小丹の選挙1枚絵
+      Screen.setBg(SPSP_IMGS.kotan, false);
+      await Screen.telop(SPSP_REACH.lines[0], 1600, "story hot");
+      // VS 3D文字アニメーション
+      AudioMgr.se("kyuin3", 0.6);
+      Screen.flash("#ffffff", 350);
+      Screen.playVideo("vs3d", { front: true, ms: 2400 });
+      await wait(2200);
+      // 伊藤輝明の選挙1枚絵
+      Screen.setBg(SPSP_IMGS.ito, false);
+      await Screen.telop(SPSP_REACH.lines[1], 1600, "story hot");
+      await Screen.telop(SPSP_REACH.lines[2], 1500, "story hot");
       // PUSHボタン
       const pressed = await Screen.pushButton(2800);
       if (pressed || true) {
@@ -456,7 +466,8 @@ const Machine = (() => {
       AudioMgr.voice("rush");
       Screen.glowFlash("rainbow", 1800);
       Screen.fxKira("kiraLine2", 1600);
-      await Screen.telop("常総RUSH " + (wasRush ? "継続確定！！" : "突入確定！！"), 1800, "story hot");
+      Screen.showTextImg("rushKakutei", 1900);   // 常総RUSH確定文字
+      await wait(1800);
       return;
     }
     // 当落判定のタメ（ドキドキ）
@@ -472,7 +483,8 @@ const Machine = (() => {
       Screen.flash("#ffd23f", 700);
       Screen.glowFlash("rainbow", 2400);
       Screen.fxKira("kiraLine2", 1800);
-      await Screen.telop("常総RUSH " + (wasRush ? "継続！！" : "突入！！"), 2000, "story hot");
+      Screen.showTextImg("rushKakutei", 2100);   // 常総RUSH確定文字
+      await wait(2000);
     } else {
       AudioMgr.se("fail", 0.55);
       Screen.glowFlash("blue", 1200);
@@ -532,10 +544,13 @@ const Machine = (() => {
     AudioMgr.playBgm("jackpot", 0.4);
     // 即確定でなければ当落は伏せる（偶数図柄でも「大当り！」表記）
     Screen.jackpotShow(immediate ? "大当り！！ 〜常総RUSH確定〜" : "大当り！", char.key);
+    Screen.showTextImg("atari", 1900);   // 大当たり文字画像
     updateModeUI(); // 右打ちランプ点灯
     $("migiuchi").classList.remove("hidden");
+    await wait(1700);
+    Screen.showTextImg("migiuchi", 1600); // 右打ち文字画像
     Screen.lcdMsg("右打ちでアタッカーを狙え！", "alert");
-    await wait(1600);
+    await wait(1500);
     Screen.lcdMsg(null);
 
     jackpotGained = 0;

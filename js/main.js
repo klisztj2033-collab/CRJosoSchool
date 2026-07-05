@@ -67,7 +67,15 @@
     const img = new Image();
     img.src = `imagin/${n}.png`;
   }
-  for (const p of [CONFIRM_BG, "imagin/口論バトル 石川VS西山.png", "imagin/常磐線 遅延ダッシュ.png"]) {
+  const preloadList = [
+    CONFIRM_BG,
+    "imagin/口論バトル 石川VS西山.png", "imagin/常磐線 遅延ダッシュ.png",
+    "imagin/体育祭 大声援リレー.png", "imagin/ちのね_ラブレター.png",
+    ...Object.values(TEXT_IMGS),
+    ...Object.values(SPSP_IMGS),
+    ...Object.values(CONFIRM_CHAR_IMGS),
+  ];
+  for (const p of preloadList) {
     const img = new Image();
     img.src = encodeURI(p);
   }
