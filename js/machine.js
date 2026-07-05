@@ -246,13 +246,16 @@ const Machine = (() => {
     Screen.reelsVisible(false);
     Screen.miniDigits(true, `${CHARACTERS[symbols[0]].num} ● ${CHARACTERS[symbols[2]].num}`);
     Screen.setBg(sp.bg, true);
+    Screen.playVideo("kiraBlue", { loop: true });   // SP中はキラキラ背景動画
     await Screen.reachTitle(sp.title, 2200, "sp");
 
     // ストーリーテロップ＋カットイン
     for (let i = 0; i < sp.lines.length; i++) {
       await Screen.telop(sp.lines[i], 1500, "story");
       if (i === 1 && sp.chars[0]) {
+        Screen.playVideo("cutinBlue", { front: true, ms: 1600 });  // カットイン動画
         await Screen.cutin(sp.chars[0], "", 1500, sp.grade === "strong" ? "hot" : "");
+        Screen.playVideo("kiraBlue", { loop: true });
       }
     }
 
@@ -263,6 +266,7 @@ const Machine = (() => {
       AudioMgr.voice("atsui");
       Screen.fxKira("kiraLine1", 2000);
       Screen.glowFlash("gold", 2400);   // SPSP発展：金点灯（激アツ）
+      Screen.playVideo("cutinRed", { front: true, ms: 2400 });   // 赤カットイン動画
       await Screen.reachTitle(SPSP_REACH.title, 2400, "spsp");
       Screen.setBg(SPSP_REACH.bg, true);
       for (const line of SPSP_REACH.lines) {
@@ -276,10 +280,12 @@ const Machine = (() => {
           AudioMgr.se("hit", 0.7);
           Screen.fxKira("kiraLine2", 1800);
           Screen.glowFlash("red", 1800);   // 当り決着：赤点灯
+          Screen.playVideo("gekiha", { front: true, ms: 2200 });  // 「撃破」動画
           Screen.flash("#ffd23f", 700);
           await Screen.cutin(SPSP_REACH.chars[0], "決着──！！", 1600, "hot");
         } else {
           AudioMgr.se("fail", 0.6);
+          Screen.playVideo("jikai", { front: true, ms: 2000 });   // 「次回」動画
           Screen.flash("#5560a0", 500);
         }
       }
@@ -291,13 +297,16 @@ const Machine = (() => {
         AudioMgr.se("hit", 0.7);
         Screen.fxKira("kiraLine2", 1500);
         Screen.glowFlash("red", 1500);   // 当り決着：赤点灯
+        Screen.playVideo("gekiha", { front: true, ms: 2000 });   // 「撃破」動画
         Screen.flash("#ffd23f", 700);
       } else {
         AudioMgr.se("fail", 0.55);
+        Screen.playVideo("jikai", { front: true, ms: 1800 });    // 「次回」動画
       }
     }
 
     // 液晶復帰・図柄停止
+    Screen.stopVideo();
     Screen.reelsVisible(true);
     Screen.miniDigits(false);
     restoreBg();
@@ -317,6 +326,7 @@ const Machine = (() => {
     Screen.setBg(BGS.wafuUme, false);
     Screen.fxKira("kiraLine1", 3500);
     Screen.glowFlash("rainbow", 4500);   // 全回転：虹点灯（プレミア）
+    Screen.playVideo("kiraBlue", { loop: true });  // キラキラ背景動画
     await Screen.telop("――全回転――", 1800, "story hot");
     Screen.flash("#ffffff", 800);
     // 3リール同期回転の演出（順に高速で同一図柄を流す）
@@ -330,6 +340,7 @@ const Machine = (() => {
     AudioMgr.se("hit", 0.8);
     Screen.flash("#ffd23f", 900);
     await wait(800);
+    Screen.stopVideo();
   }
 
   /* ---------- 大当り ---------- */
@@ -355,6 +366,7 @@ const Machine = (() => {
     AudioMgr.se("levelup", 0.55);
     AudioMgr.voice("jackpot");
     Screen.fxKira("kiraLine1", 2500);
+    Screen.playVideo("kiraBlue", { ms: 4000 });   // 大当りファンファーレ：キラキラ背景動画
     Screen.flash("#ffd23f", 900);
     Screen.glow("pulse-fast", grade === "double" ? "rainbow" : "red");  // 大当り：赤（10R×2は虹）
     Screen.modeBanner(null);

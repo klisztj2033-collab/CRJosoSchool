@@ -188,6 +188,37 @@ const Screen = (() => {
   }
   function jackpotHide() { $("jackpot-layer").classList.add("hidden"); }
 
+  /* ---------- 演出動画（黒背景素材をscreen合成で重ねる） ---------- */
+  const fxVideo = $("fx-video");
+  let fxVideoTimer = null;
+
+  function playVideo(key, opts = {}) {
+    const src = VIDEO_FX[key];
+    if (!fxVideo || !src) return;
+    const { front = false, ms = 0, loop = false } = opts;
+    fxVideo.onerror = () => stopVideo();   // ファイルが無ければ無視
+    fxVideo.onended = () => { if (!loop) stopVideo(); };
+    if (fxVideo.dataset.key !== key) {
+      fxVideo.src = src;
+      fxVideo.dataset.key = key;
+    }
+    fxVideo.className = front ? "front" : "back";
+    fxVideo.loop = loop;
+    fxVideo.muted = true;
+    try { fxVideo.currentTime = 0; } catch (e) {}
+    const p = fxVideo.play();
+    if (p) p.catch(() => stopVideo());
+    if (fxVideoTimer) clearTimeout(fxVideoTimer);
+    fxVideoTimer = ms > 0 ? setTimeout(stopVideo, ms) : null;
+  }
+
+  function stopVideo() {
+    if (!fxVideo) return;
+    fxVideo.pause();
+    fxVideo.className = "hidden";
+    if (fxVideoTimer) { clearTimeout(fxVideoTimer); fxVideoTimer = null; }
+  }
+
   /* ---------- 光エフェクト（キラキラ集中線） ---------- */
   let fxTimer = null;
   function fxKira(which, ms = 1500) {
@@ -240,6 +271,7 @@ const Screen = (() => {
     wait, setBg, setSymbol, startReel, stopReel, startAll, reelsVisible,
     miniDigits, flash, telop, reachTitle, cutin, mobYokoku, pushButton,
     modeBanner, stCount, lcdMsg, renderHolds, glow, glowFlash, fxKira,
+    playVideo, stopVideo,
     jackpotShow, jackpotRound, jackpotBalls, jackpotChar, jackpotHide,
     get current() { return current; },
   };

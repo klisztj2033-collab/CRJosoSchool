@@ -95,6 +95,16 @@ const FX_IMGS = {
   kiraLine2: "assets/fx/okumono_kira_line2.png",
 };
 
+/* 演出動画（動画AC）
+ * movie/ フォルダに同名ファイルを置くと自動で有効になる（無ければスキップ） */
+const VIDEO_FX = {
+  kiraBlue:  "movie/勢いのあるキラキラブルー背景.mp4",   // 汎用キラキラ背景
+  cutinRed:  "movie/赤色の斜めカットインエフェクト.mp4", // 激アツカットイン
+  cutinBlue: "movie/青色のカットインエフェクト.mp4",     // 通常カットイン
+  gekiha:    "movie/撃破３D文字アニメーション.mp4",       // 当り決着
+  jikai:     "movie/次回３D文字アニメーション.mp4",       // ハズレ決着
+};
+
 /* ---------- SPリーチ定義 ----------
  * winRate は「当たり変動のうちこのリーチが選ばれた際の表示強度」の目安 */
 const SP_REACHES = [
