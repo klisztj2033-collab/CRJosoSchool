@@ -330,7 +330,7 @@ const Machine = (() => {
       Screen.stopVideo();
       await doConfirm(symbols);
       Screen.confirmBg(false);
-      Screen.setBg(sp.bg, false);
+      Screen.setBg(sp.bg, false, true);
     }
 
     if (isSPSP) {
@@ -343,7 +343,7 @@ const Machine = (() => {
       Screen.glowFlash("gold", 2400);   // SPSP発展：金点灯（激アツ）
       await Screen.reachTitle(SPSP_REACH.title, 2000, "spsp");
       // 小丹の選挙1枚絵
-      Screen.setBg(SPSP_IMGS.kotan, false);
+      Screen.setBg(SPSP_IMGS.kotan, false, true);
       await Screen.telop(SPSP_REACH.lines[0], 1600, "story hot");
       // VS 3D文字アニメーション
       AudioMgr.se("kyuin3", 0.6);
@@ -351,7 +351,7 @@ const Machine = (() => {
       Screen.playVideo("vs3d", { front: true, ms: 2400 });
       await wait(2200);
       // 伊藤輝明の選挙1枚絵
-      Screen.setBg(SPSP_IMGS.ito, false);
+      Screen.setBg(SPSP_IMGS.ito, false, true);
       await Screen.telop(SPSP_REACH.lines[1], 1600, "story hot");
       await Screen.telop(SPSP_REACH.lines[2], 1500, "story hot");
       // PUSHボタン

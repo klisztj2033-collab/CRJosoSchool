@@ -153,12 +153,12 @@ const CONFIRM_BG = "imagin/激熱確定背景_ちのね.png";
 
 /* 大当り確定演出用の各キャラ全身画像（大当り画面で大きく背景のように表示） */
 const CONFIRM_CHAR_IMGS = {
-  kuno:      "imagin/久野_大当り確定演出用.png",
-  akagami:   "imagin/赤上_大当り確定演出用.png",
-  ishikawa:  "imagin/石川_大当り確定演出用.png",
-  nishiyama: "imagin/西山_大当り確定演出用.png",
-  kotan:     "imagin/小丹_大当り確定演出用.png",
-  chinone:   "imagin/ちのね_大当り確定演出用.png",
+  kuno:      "imagin/久野_大当り確定演出用_t.png",
+  akagami:   "imagin/赤上_大当り確定演出用_t.png",
+  ishikawa:  "imagin/石川_大当り確定演出用_t.png",
+  nishiyama: "imagin/西山_大当り確定演出用_t.png",
+  kotan:     "imagin/小丹_大当り確定演出用_t.png",
+  chinone:   "imagin/ちのね_大当り確定演出用_t.png",
   // 小島・矢吹は確定演出用未用意 → 通常立ち絵で代用
   kojima:    "assets/character/小島.png",
   yabuki:    "assets/character/矢吹.png",

@@ -90,7 +90,22 @@ body {
   filter: drop-shadow(0 0 30px rgba(201, 168, 76, 0.2));
 }
 
-/* 点灯差分オーバーレイ（大当り・RUSH時に発光） */
+/* 常時ベース点灯：何もない時もうっすら光る（点灯あり画像を薄く重ねる） */
+#cab-baselit {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  z-index: 2;
+  pointer-events: none;
+  opacity: .45;
+  animation: baseBreath 3.4s ease-in-out infinite alternate;
+}
+@keyframes baseBreath {
+  from { opacity: .34; }
+  to { opacity: .5; }
+}
+
+/* 点灯差分オーバーレイ（大当り・RUSH時に発光。強めに光らせる） */
 #cab-glow {
   position: absolute;
   inset: 0;
@@ -98,12 +113,13 @@ body {
   opacity: 0;
   pointer-events: none;
   mix-blend-mode: screen;
+  filter: brightness(1.45) saturate(1.35);
   z-index: 45;
 }
-#cab-glow.pulse-fast { animation: glowPulse .45s infinite alternate; }
-#cab-glow.pulse-slow { animation: glowPulse 1.6s infinite alternate; }
+#cab-glow.pulse-fast { animation: glowPulse .5s infinite alternate; }
+#cab-glow.pulse-slow { animation: glowPulse 1.7s infinite alternate; }
 @keyframes glowPulse {
-  from { opacity: .1; }
+  from { opacity: .6; }
   to { opacity: 1; }
 }
 
@@ -136,9 +152,11 @@ body {
   inset: 0;
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
   filter: brightness(0.85);
   transition: filter .4s;
 }
+#lcd-bg.fit { background-color: #0a0813; }  /* 全体表示時の余白を暗く埋める */
 #lcd-flash {
   position: absolute;
   inset: 0;

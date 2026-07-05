@@ -10,10 +10,13 @@ const Screen = (() => {
   const current = [0, 2, 4]; // CHARACTERS のインデックス
 
   /* ---------- 基本表示 ---------- */
-  function setBg(url, dark = false) {
+  // fit=true で画像全体を表示（横長の1枚絵の見切れ防止）
+  function setBg(url, dark = false, fit = false) {
     const bg = $("lcd-bg");
     bg.style.backgroundImage = `url("${encodeURI(url)}")`;
-    bg.style.filter = dark ? "brightness(0.45)" : "brightness(0.85)";
+    bg.style.filter = dark ? "brightness(0.55)" : "brightness(1)";
+    bg.style.backgroundSize = fit ? "contain" : "cover";
+    bg.classList.toggle("fit", fit);
   }
 
   function setSymbol(i, charIdx) {
