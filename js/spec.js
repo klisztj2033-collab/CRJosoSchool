@@ -109,7 +109,7 @@ const VIDEO_FX = {
  * winRate は「当たり変動のうちこのリーチが選ばれた際の表示強度」の目安 */
 const SP_REACHES = [
   {
-    id: "kouron", title: "口論バトル 石川 VS 西山", bg: "assets/bg/okumono_night_moon.png",
+    id: "kouron", title: "口論バトル 石川 VS 西山", bg: "imagin/口論バトル 石川VS西山.png",
     chars: ["ishikawa", "nishiyama"], grade: "strong",
     lines: ["帰りの常磐線、今日も口論が始まった……", "「は？論理的に考えて俺が正しいんだが」", "「お前それ昨日と言ってること違うぞ！」", "決着の行方は──"],
   },
@@ -119,7 +119,7 @@ const SP_REACHES = [
     lines: ["定期テスト最終日。最後の科目が始まる──", "「それ、宇宙世紀で例えると…」", "残り時間わずか！ 最後の一問に挑む！"],
   },
   {
-    id: "dash", title: "常磐線 遅延ダッシュ", bg: "assets/bg/pixabay_sky_clouds.jpg",
+    id: "dash", title: "常磐線 遅延ダッシュ", bg: "imagin/常磐線 遅延ダッシュ.png",
     chars: ["yabuki"], grade: "mid",
     lines: ["電車が遅延！ 遅刻の危機──", "「……別にいいだろ、どこで食っても」", "土浦駅の階段を駆け上がれ！"],
   },
@@ -141,6 +141,23 @@ const SPSP_REACH = {
   chars: ["kotan"], grade: "max",
   lines: ["全校生徒が見守る、生徒会長選挙──", "演説が校舎前に響き渡る！", "常総学院の未来を懸けた最終決戦！！"],
 };
+
+/* 激熱確定背景（出現＝大当り確定のプレミア背景） */
+const CONFIRM_BG = "imagin/激熱確定背景_ちのね.png";
+
+/* 群予告の出現判定（当落連動で信頼度を約60%に） */
+function decideMob(isWin, isRush) {
+  const pWin  = isRush ? 0.60 : 0.66;    // 当たり時に群予告が出る率
+  const pLose = isRush ? 0.006 : 0.0012;  // ハズレ時に群予告が出る率（低く抑える）
+  return Math.random() < (isWin ? pWin : pLose);
+}
+
+/* 確定背景の出現判定（当たり時のみ・7図柄なら必ず） */
+function decideConfirm(isWin, symbols) {
+  if (!isWin) return false;
+  if (symbols[0] === 6 && symbols[2] === 6) return true; // 7図柄テンパイ＝必ず確定背景
+  return Math.random() < 0.12;                           // その他の当たりは12%でプレミア出現
+}
 
 /* ---------- 保留色 ---------- */
 const HOLD_COLORS = [

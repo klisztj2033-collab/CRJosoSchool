@@ -45,6 +45,14 @@
     $("sound-btn").textContent = on ? "♪ ON" : "♪ OFF";
   });
 
+  /* テストプレイ用ボタン */
+  $("test-hit").addEventListener("click", () => { Machine.testHit(); });
+  $("test-rush").addEventListener("click", () => { Machine.testRush(); });
+  $("test-prob").addEventListener("click", () => {
+    const label = Machine.cycleProb();
+    $("test-prob").textContent = "確率 " + label;
+  });
+
   /* スタート（オーディオ解禁） */
   $("start-btn").addEventListener("click", () => {
     $("start-overlay").classList.add("hidden");
@@ -54,10 +62,14 @@
     applyHandle();
   });
 
-  /* 発光差分画像のプリロード（色切り替え時のチラつき防止） */
+  /* 発光差分・演出画像のプリロード（切り替え時のチラつき防止） */
   for (const n of ["glow_red", "glow_blue", "glow_gold", "glow_rainbow"]) {
     const img = new Image();
     img.src = `imagin/${n}.png`;
+  }
+  for (const p of [CONFIRM_BG, "imagin/口論バトル 石川VS西山.png", "imagin/常磐線 遅延ダッシュ.png"]) {
+    const img = new Image();
+    img.src = encodeURI(p);
   }
 
   /* 初期化 */

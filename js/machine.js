@@ -22,6 +22,10 @@ const Machine = (() => {
     history: [],             // {type:"rush10"|"jitan4"|...}
   };
 
+  // テストプレイ用フラグ
+  let _forceWin = false;
+  let _forceGrade = null;
+
   /* ---------- UI更新 ---------- */
   function updateBalls(delta) {
     S.balls += delta;
@@ -31,6 +35,7 @@ const Machine = (() => {
 
   function updateCounter() {
     $("dc-spins").textContent = S.spins;
+    Screen.spinDisplay(S.spins);
     $("dc-total").textContent = S.totalSpins;
     $("dc-hits").textContent = S.hits;
     $("dc-rush").textContent = S.rushHits;
@@ -93,15 +98,22 @@ const Machine = (() => {
     if (S.holdQueue.length >= 4) return; // オーバーフロー
     AudioMgr.se("hold", 0.3);
     // 入賞時点のモードで抽選（実機同様、先読み用に確定させる）
-    const prob = S.mode === "rush" ? SPEC.RUSH_PROB : SPEC.NORMAL_PROB;
-    const isWin = Math.random() < prob;
-    const grade = isWin ? decideGrade(S.mode === "rush") : null;
-    const pattern = pickPattern(isWin, S.mode !== "normal");
+    const isRush = S.mode !== "normal";
+    const prob = isRush ? SPEC.RUSH_PROB : SPEC.NORMAL_PROB;
+    const isWin = _forceWin ? true : (Math.random() < prob);
+    const grade = isWin ? (_forceGrade || decideGrade(isRush)) : null;
+    _forceWin = false; _forceGrade = null;
+    const mob = decideMob(isWin, isRush);
+    let pattern = pickPattern(isWin, isRush);
+    // 群予告が出るならリーチ以上に格上げ（群→リーチの流れを保証）
+    if (mob && (pattern.type === "quick" || pattern.type === "yokoku")) {
+      pattern = { type: "normal-reach" };
+    }
     const holdColor = pickHoldColor(isWin, pattern);
     if (holdColor >= 3) AudioMgr.se("kira2", 0.5);  // 赤保留以上で保留変化音
     if (holdColor === 5) Screen.glowFlash("rainbow", 1400);      // 虹保留：筐体虹点灯
     else if (holdColor >= 4) Screen.glowFlash("gold", 1000);     // 金保留：筐体金点灯
-    S.holdQueue.push({ isWin, grade, pattern, holdColor });
+    S.holdQueue.push({ isWin, grade, pattern, holdColor, mob });
     Screen.renderHolds(S.holdQueue);
     processQueue();
   }
@@ -121,16 +133,21 @@ const Machine = (() => {
 
   /* ---------- 変動実行 ---------- */
   async function runSpin(job) {
-    const { isWin, grade, pattern } = job;
+    const { isWin, grade, pattern, mob } = job;
     S.spins++;
     S.totalSpins++;
     updateCounter();
 
     const quick = S.mode !== "normal"; // 電サポ中は高速変動
+    Screen.clearPose();
+    Screen.confirmBg(false);
     Screen.startAll();
 
     // 図柄決定
     const symbols = decideSymbols(isWin, pattern, grade);
+
+    // 群予告（当落連動・信頼度約60%）
+    if (mob) await Screen.mobYokoku();
 
     switch (pattern.type) {
       case "quick":
@@ -144,12 +161,9 @@ const Machine = (() => {
 
       case "yokoku": {
         await wait(800);
-        // 弱予告：セリフ or 群（群はガセでも激熱げに）
-        if (Math.random() < 0.15) await Screen.mobYokoku();
-        else {
-          const c = CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
-          await Screen.telop(`${c.name}「${c.quote}」`, 1400, "weak");
-        }
+        // 弱予告：セリフ
+        const c = CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
+        await Screen.telop(`${c.name}「${c.quote}」`, 1400, "weak");
         await Screen.stopReel(0, symbols[0]);
         await wait(300);
         await Screen.stopReel(2, symbols[2]);
@@ -189,56 +203,92 @@ const Machine = (() => {
     }
   }
 
+  // 図柄インデックス6 = num7 = 「7図柄」（7テンパイ=当り確定のため厳格管理）
   function decideSymbols(isWin, pattern, grade) {
     if (isWin) {
-      // 奇数=RUSH突入/継続の強グレード / 偶数=単発・2R
+      // 奇数=RUSH突入/継続の強グレード（7図柄を含む） / 偶数=単発・2R
       const oddSide = grade === "double" || grade === "single";
       const pool = CHARACTERS.filter(c => (c.num % 2 === 1) === oddSide);
       const c = pool[Math.floor(Math.random() * pool.length)];
       const idx = CHARACTERS.indexOf(c);
       return [idx, idx, idx];
     }
-    const a = Math.floor(Math.random() * 8);
-    let b = Math.floor(Math.random() * 8);
     const hasReach = ["normal-reach", "sp", "spsp"].includes(pattern.type);
     if (hasReach) {
-      // リーチハズレ：中図柄を±1ずらす
-      b = (a + (Math.random() < 0.5 ? 1 : 7)) % 8;
+      // リーチハズレ：外側の図柄に7図柄(index6)は使わない
+      let a = Math.floor(Math.random() * 7);  // 0..6
+      if (a === 6) a = 7;                      // {0,1,2,3,4,5,7} = index6を除外
+      const b = (a + (Math.random() < 0.5 ? 1 : 7)) % 8; // 中図柄を±1ずらす
       return [a, b, a];
     }
+    // 非リーチ：外側2つを必ず不一致に（偶然のテンパイ＝7-7を防ぐ）
+    const a = Math.floor(Math.random() * 8);
     let c = Math.floor(Math.random() * 8);
-    if (b === a && c === a) b = (a + 3) % 8; // 偶然の当たり目を回避
+    if (c === a) c = (a + 3) % 8;
+    const b = Math.floor(Math.random() * 8);
     return [a, b, c];
+  }
+
+  /* 7図柄テンパイの即時確定カット */
+  async function sevenTenpaiCue() {
+    AudioMgr.se("kyuin3", 0.6);
+    Screen.glowFlash("rainbow", 2400);
+    Screen.flash("#fff", 300);
+    await Screen.reachTitle("７図柄テンパイ！！", 1300, "spsp");
+  }
+
+  /* 激熱確定背景（出現＝当り確定のプレミア演出） */
+  async function doConfirm(symbols) {
+    const seven = symbols[0] === 6 && symbols[2] === 6;
+    AudioMgr.se("kyuin3", 0.6);
+    AudioMgr.voice("atsui");
+    Screen.reelsVisible(false);
+    Screen.confirmBg(true);
+    Screen.glowFlash("rainbow", 3000);
+    Screen.flash("#ffffff", 500);
+    await Screen.reachTitle(seven ? "大当り確定！！" : "激熱！ 大当り確定！！", 2600, "spsp");
+    Screen.reelsVisible(true);
   }
 
   async function runNormalReach(symbols, isWin, silent) {
     await wait(1200);
     await Screen.stopReel(0, symbols[0]);
     await wait(500);
-    await Screen.stopReel(2, symbols[2]);
-    if (!silent) {
+    await Screen.stopReel(2, symbols[2], { decel: true });   // 2つ目は減速停止
+    const reach = symbols[0] === symbols[2];
+    const seven = symbols[0] === 6 && symbols[2] === 6;
+    if (reach) Screen.tenpaiPose(true);
+    if (!silent && reach) {
       AudioMgr.se("reach", 0.5);
       AudioMgr.voice("reach");
       Screen.glowFlash("blue", 1200);   // リーチ成立：青点灯
-      await Screen.reachTitle("リーチ！", 1200, "normal");
+      await Screen.reachTitle("リーチ！", 1100, "normal");
+      if (seven) await sevenTenpaiCue();
     }
-    await wait(1800);
-    await Screen.stopReel(1, symbols[1]);
-    if (!isWin && !silent) AudioMgr.se("lose", 0.35);
+    // 確定背景（当り時のみ／7図柄なら必ず）
+    if (decideConfirm(isWin, symbols)) await doConfirm(symbols);
+    await wait(1500);
+    await Screen.stopReel(1, symbols[1], { decel: true });
+    if (isWin) { Screen.winPose(); AudioMgr.se("hit", 0.6); }
+    else if (!silent) AudioMgr.se("lose", 0.35);
+    Screen.tenpaiPose(false);
+    Screen.confirmBg(false);
   }
 
   async function runSPReach(symbols, isWin, sp, isSPSP) {
     // 予告段階
     await wait(1000);
-    if (Math.random() < (isWin ? 0.5 : 0.15)) await Screen.mobYokoku();
 
     await Screen.stopReel(0, symbols[0]);
     await wait(450);
-    await Screen.stopReel(2, symbols[2]);
+    await Screen.stopReel(2, symbols[2], { decel: true });   // 2つ目は減速停止
+    const seven = symbols[0] === 6 && symbols[2] === 6;
+    Screen.tenpaiPose(true);
     AudioMgr.se("reach", 0.5);
     AudioMgr.voice("reach");
     Screen.glowFlash("blue", 1200);   // リーチ成立：青点灯
     await Screen.reachTitle("リーチ！", 1000, "normal");
+    if (seven) await sevenTenpaiCue();
 
     // SP発展
     AudioMgr.se("pseudo", 0.5);
@@ -257,6 +307,14 @@ const Machine = (() => {
         await Screen.cutin(sp.chars[0], "", 1500, sp.grade === "strong" ? "hot" : "");
         Screen.playVideo("kiraBlue", { loop: true });
       }
+    }
+
+    // 激熱確定背景（出現＝当り確定のプレミア割り込み。7図柄なら必ず）
+    if (decideConfirm(isWin, symbols)) {
+      Screen.stopVideo();
+      await doConfirm(symbols);
+      Screen.confirmBg(false);
+      Screen.setBg(sp.bg, true);
     }
 
     if (isSPSP) {
@@ -307,15 +365,19 @@ const Machine = (() => {
 
     // 液晶復帰・図柄停止
     Screen.stopVideo();
+    Screen.confirmBg(false);
     Screen.reelsVisible(true);
     Screen.miniDigits(false);
     restoreBg();
     await wait(600);
-    await Screen.stopReel(1, symbols[1]);
-    if (!isWin) {
+    await Screen.stopReel(1, symbols[1], { decel: true });
+    if (isWin) {
+      Screen.winPose();
+    } else {
       AudioMgr.se("lose", 0.35);
       bgmForMode();
     }
+    Screen.tenpaiPose(false);
   }
 
   async function runZenkaiten(symbols) {
@@ -346,6 +408,8 @@ const Machine = (() => {
   /* ---------- 大当り ---------- */
   async function jackpotFlow(symbols, grade) {
     S.inJackpot = true;
+    Screen.confirmBg(false);
+    Screen.clearPose();
     const char = CHARACTERS[symbols[0]];
     const g = GRADES[grade];
     const nextMode = g.next;
@@ -490,5 +554,36 @@ const Machine = (() => {
     updateModeUI();
   }
 
-  return { init, updateStrength, updateBalls, get state() { return S; } };
+  /* ---------- テストプレイ用機能 ---------- */
+  // 次の1回転を強制的に当たりにする（grade指定可）
+  function testHit(grade) {
+    _forceWin = true;
+    _forceGrade = grade || (S.mode === "rush" ? "double" : "double");
+    // 発射していなくてもヘソ入賞を1発発生させて変動を起こす
+    onHeso();
+  }
+  // RUSH突入を即体験（10R×2＋RUSH）
+  function testRush() { testHit("double"); }
+
+  // テスト用に大当り確率を切り替える（表示文字列を返す）
+  const PROB_CYCLE = [
+    { normal: 1 / 349.9, rush: 1 / 99.9, label: "1/349.9" },
+    { normal: 1 / 30,    rush: 1 / 30,   label: "1/30" },
+    { normal: 1 / 10,    rush: 1 / 10,   label: "1/10" },
+    { normal: 1 / 3,     rush: 1 / 3,    label: "1/3" },
+  ];
+  let _probIdx = 0;
+  function cycleProb() {
+    _probIdx = (_probIdx + 1) % PROB_CYCLE.length;
+    const p = PROB_CYCLE[_probIdx];
+    SPEC.NORMAL_PROB = p.normal;
+    SPEC.RUSH_PROB = p.rush;
+    return p.label;
+  }
+
+  return {
+    init, updateStrength, updateBalls,
+    testHit, testRush, cycleProb,
+    get state() { return S; },
+  };
 })();

@@ -37,18 +37,68 @@ const Screen = (() => {
     if (spinTimers[i]) { clearInterval(spinTimers[i]); spinTimers[i] = null; }
   }
 
-  async function stopReel(i, charIdx, se = true) {
+  // opts: 旧来は boolean(se)。{se, decel} も可。
+  async function stopReel(i, charIdx, opts) {
+    let se = true, decel = false;
+    if (typeof opts === "boolean") se = opts;
+    else if (opts) { se = opts.se !== false; decel = !!opts.decel; }
     stopReelTimer(i);
-    setSymbol(i, charIdx);
     reels[i].classList.remove("spinning");
+    if (decel) {
+      // 減速しながら数コマ送る（「止まるかな？」の間）
+      reels[i].classList.add("slowing");
+      const steps = [70, 100, 135, 180, 235];
+      for (const dur of steps) {
+        setSymbol(i, (current[i] + 1) % CHARACTERS.length);
+        if (se) AudioMgr.se("stop", 0.18);
+        await wait(dur);
+      }
+      reels[i].classList.remove("slowing");
+    }
+    setSymbol(i, charIdx);
     reels[i].classList.add("bounce");
     if (se) AudioMgr.se("stop", 0.4);
-    setTimeout(() => reels[i].classList.remove("bounce"), 300);
+    setTimeout(() => reels[i].classList.remove("bounce"), 340);
   }
 
-  function startAll() { for (let i = 0; i < 3; i++) startReel(i); }
+  function startAll() {
+    for (let i = 0; i < 3; i++) {
+      reels[i].classList.remove("tenpai", "win");
+      startReel(i);
+    }
+  }
 
   function reelsVisible(v) { $("reels").style.opacity = v ? "1" : "0"; }
+
+  /* テンパイ／当り確定の決めポーズ */
+  function tenpaiPose(on) {
+    reels[0].classList.toggle("tenpai", on);
+    reels[2].classList.toggle("tenpai", on);
+  }
+  function winPose() {
+    for (let i = 0; i < 3; i++) {
+      reels[i].classList.remove("tenpai");
+      reels[i].classList.add("win");
+    }
+  }
+  function clearPose() {
+    for (let i = 0; i < 3; i++) reels[i].classList.remove("tenpai", "win");
+  }
+
+  /* 回転数表示（右上） */
+  function spinDisplay(n) {
+    const el = $("spin-num");
+    if (el) el.textContent = n;
+  }
+
+  /* 激熱確定背景（プレミア・出現＝当り確定） */
+  function confirmBg(show) {
+    const el = $("confirm-bg");
+    if (!el) return;
+    if (!show) { el.classList.add("hidden"); return; }
+    if (!el.src.endsWith(encodeURI(CONFIRM_BG))) el.src = CONFIRM_BG;
+    el.classList.remove("hidden");
+  }
 
   /* ミニ図柄（リーチ中に隅で回す表示） */
   function miniDigits(show, text = "") {
@@ -271,7 +321,7 @@ const Screen = (() => {
     wait, setBg, setSymbol, startReel, stopReel, startAll, reelsVisible,
     miniDigits, flash, telop, reachTitle, cutin, mobYokoku, pushButton,
     modeBanner, stCount, lcdMsg, renderHolds, glow, glowFlash, fxKira,
-    playVideo, stopVideo,
+    playVideo, stopVideo, tenpaiPose, winPose, clearPose, spinDisplay, confirmBg,
     jackpotShow, jackpotRound, jackpotBalls, jackpotChar, jackpotHide,
     get current() { return current; },
   };

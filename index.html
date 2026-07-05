@@ -28,8 +28,12 @@
       <!-- 液晶（筐体の透過穴の奥に配置） -->
       <div id="lcd">
         <div id="lcd-bg"></div>
+        <img id="confirm-bg" class="hidden" alt="">
         <video id="fx-video" class="hidden" muted playsinline preload="none"></video>
         <div id="lcd-flash"></div>
+
+        <!-- 回転数表示（右上） -->
+        <div id="spin-display"><span id="spin-num">0</span><span class="spin-unit">回転</span></div>
 
         <div id="reels">
           <div class="reel" id="reel-0"><div class="symbol"><img alt=""><span class="num"></span></div></div>
@@ -99,6 +103,13 @@
       <div id="side-btns">
         <button id="spec-btn">遊技説明</button>
         <button id="sound-btn">♪ ON</button>
+      </div>
+
+      <div id="test-btns">
+        <div class="test-label">TEST</div>
+        <button id="test-hit">🎰 大当り</button>
+        <button id="test-rush">🔥 RUSH突入</button>
+        <button id="test-prob">確率 1/349.9</button>
       </div>
     </div>
   </div>

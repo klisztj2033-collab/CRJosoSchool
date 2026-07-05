@@ -143,6 +143,41 @@ body {
 }
 #lcd-flash.on { opacity: .85; }
 
+/* 激熱確定背景（プレミア） */
+#confirm-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  z-index: 26;
+  animation: confirmIn .6s ease-out;
+}
+@keyframes confirmIn {
+  0% { transform: scale(1.4); opacity: 0; filter: brightness(2.5); }
+  100% { transform: scale(1); opacity: 1; filter: brightness(1); }
+}
+
+/* 回転数表示（液晶右上） */
+#spin-display {
+  position: absolute;
+  right: 8px; top: 6px;
+  z-index: 19;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,210,63,0.5);
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-family: "Consolas", monospace;
+  line-height: 1.1;
+  pointer-events: none;
+}
+#spin-num {
+  color: #ffd23f;
+  font-size: 20px;
+  font-weight: 900;
+  text-shadow: 0 0 6px rgba(255,210,63,0.7);
+}
+.spin-unit { color: #cbb; font-size: 10px; margin-left: 2px; }
+
 /* リール */
 #reels {
   position: absolute;
@@ -162,11 +197,35 @@ body {
   position: relative;
 }
 .reel.spinning .symbol img { filter: blur(3px); }
-.reel.bounce { animation: bounce .3s; }
+.reel.slowing .symbol img { filter: blur(1px); }
+.reel.bounce { animation: bounce .34s cubic-bezier(.3,1.4,.5,1); }
 @keyframes bounce {
-  0% { transform: translateY(-6px); }
-  60% { transform: translateY(3px); }
-  100% { transform: translateY(0); }
+  0% { transform: translateY(-14px) scaleY(1.12); }
+  45% { transform: translateY(5px) scaleY(0.94); }
+  70% { transform: translateY(-2px) scaleY(1.02); }
+  100% { transform: translateY(0) scaleY(1); }
+}
+/* テンパイ図柄（左右が揃った瞬間の決めポーズ） */
+.reel.tenpai {
+  animation: tenpaiPulse .5s ease-in-out infinite alternate;
+  border-color: #ff4040;
+  box-shadow: 0 0 16px #ff4040, 0 0 32px rgba(255,64,64,.6);
+  z-index: 6;
+}
+@keyframes tenpaiPulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.09); }
+}
+/* 当り確定図柄（7図柄など） */
+.reel.win {
+  animation: winPose .45s ease-out;
+  border-color: #ffd23f;
+  box-shadow: 0 0 22px #ffd23f, 0 0 44px rgba(255,210,63,.7);
+}
+@keyframes winPose {
+  0% { transform: scale(1.35) rotate(-4deg); }
+  50% { transform: scale(0.92) rotate(2deg); }
+  100% { transform: scale(1) rotate(0); }
 }
 .symbol { width: 100%; height: 100%; position: relative; }
 .symbol img {
@@ -572,6 +631,33 @@ body {
   font-size: 12px;
 }
 #side-btns button:hover { background: #4a4370; }
+
+/* テストプレイ用ボタン */
+#test-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-left: 1px dashed #5a4a86;
+  padding-left: 12px;
+}
+.test-label {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #6a6288;
+  text-align: center;
+}
+#test-btns button {
+  background: #402a2a;
+  border: 1px solid #7a4a4a;
+  color: #ffd0c0;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+}
+#test-btns button:hover { background: #5a3838; }
+#test-prob { font-family: "Consolas", monospace; }
 
 /* ---------- モーダル ---------- */
 #spec-modal {

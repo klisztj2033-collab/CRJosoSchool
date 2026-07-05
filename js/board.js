@@ -24,8 +24,8 @@ const Board = (() => {
   const ATTACKER = { x: 800, y: 1100, w: 80, h: 16 };
 
   const BALL_R = 7;
-  const GRAVITY = 0.18;
-  const REST = 0.5;
+  const GRAVITY = 0.19;
+  const REST = 0.34;   // 鋼球らしく低反発（跳ねすぎ＝ぷよぷよ感を解消）
 
   let balls = [];
   let denchuOpen = false;
@@ -58,10 +58,10 @@ const Board = (() => {
   // 途中の「こぼしギャップ」から落ちた玉はアウト（入賞率の調整弁）
   addRail(85, 880, 400, 1018);              // 左・寄りレール（壁際から下カーブ沿い）
   addRail(400, 1018, 455, 1040);            // 左・道レール
-  addRail(497, 1061, HESO.x - 12, 1069);    // 左・ヘソ前レール（手前にこぼしギャップ）
+  addRail(493, 1060, HESO.x - 12, 1069);    // 左・ヘソ前レール（手前にこぼしギャップ）
   addRail(916, 985, 696, 1018);             // 右・寄りレール
   addRail(696, 1018, 641, 1040);            // 右・道レール
-  addRail(599, 1061, HESO.x + 12, 1069);    // 右・ヘソ前レール（手前にギャップ）
+  addRail(603, 1060, HESO.x + 12, 1069);    // 右・ヘソ前レール（手前にギャップ）
   // ※ヘソへは道レール経由でのみ到達（真上は役物が塞ぐ）ため命釘は無し。
   //   入賞率はこぼしギャップの幅で調整する。
 
@@ -119,8 +119,8 @@ const Board = (() => {
           nx /= nl; ny /= nl;
           const dot = b.vx * nx + b.vy * ny;
           if (dot > 0) {
-            b.vx = (b.vx - 2 * dot * nx) * (REST + 0.2);
-            b.vy = (b.vy - 2 * dot * ny) * (REST + 0.2);
+            b.vx = (b.vx - 2 * dot * nx) * (REST + 0.12);
+            b.vy = (b.vy - 2 * dot * ny) * (REST + 0.12);
           }
         }
       }
@@ -164,8 +164,12 @@ const Board = (() => {
           b.x = p.x + nx * rr;
           b.y = p.y + ny * rr;
           const dot = b.vx * nx + b.vy * ny;
-          b.vx = (b.vx - 2 * dot * nx) * REST + (Math.random() - 0.5) * 0.5;
-          b.vy = (b.vy - 2 * dot * ny) * REST;
+          if (dot < 0) {
+            // 法線成分は大きく減衰（低反発）、接線成分は転がりとして保持
+            const tx = b.vx - dot * nx, ty = b.vy - dot * ny;
+            b.vx = tx * 0.97 - nx * dot * REST + (Math.random() - 0.5) * 0.3;
+            b.vy = ty * 0.97 - ny * dot * REST;
+          }
         }
       }
 
