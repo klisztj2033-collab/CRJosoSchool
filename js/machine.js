@@ -29,8 +29,11 @@ const Machine = (() => {
   /* ---------- UI更新 ---------- */
   function updateBalls(delta) {
     S.balls += delta;
-    $("ball-count").textContent = S.balls.toLocaleString();
+    const txt = S.balls.toLocaleString();
+    $("ball-count").textContent = txt;
     $("ball-count").classList.toggle("minus", S.balls <= 0);
+    const dcb = $("dc-balls");
+    if (dcb) dcb.textContent = txt;
   }
 
   function updateCounter() {
@@ -103,6 +106,12 @@ const Machine = (() => {
     const isWin = _forceWin ? true : (Math.random() < prob);
     const grade = isWin ? (_forceGrade || decideGrade(isRush)) : null;
     _forceWin = false; _forceGrade = null;
+    // 図柄の見せ方：RUSH結果でも45%だけ奇数図柄で即確定、残りは偶数図柄にして
+    // 10R終了時の当落判定に持ち越す（偶数＝即RUSH否定にしない）
+    let showOdd = null;
+    if (isWin) {
+      showOdd = (GRADES[grade].next === "rush") ? (Math.random() < 0.45) : false;
+    }
     const mob = decideMob(isWin, isRush);
     let pattern = pickPattern(isWin, isRush);
     // 群予告が出るならリーチ以上に格上げ（群→リーチの流れを保証）
@@ -113,7 +122,7 @@ const Machine = (() => {
     if (holdColor >= 3) AudioMgr.se("kira2", 0.5);  // 赤保留以上で保留変化音
     if (holdColor === 5) Screen.glowFlash("rainbow", 1400);      // 虹保留：筐体虹点灯
     else if (holdColor >= 4) Screen.glowFlash("gold", 1000);     // 金保留：筐体金点灯
-    S.holdQueue.push({ isWin, grade, pattern, holdColor, mob });
+    S.holdQueue.push({ isWin, grade, pattern, holdColor, mob, showOdd });
     Screen.renderHolds(S.holdQueue);
     processQueue();
   }
@@ -133,7 +142,7 @@ const Machine = (() => {
 
   /* ---------- 変動実行 ---------- */
   async function runSpin(job) {
-    const { isWin, grade, pattern, mob } = job;
+    const { isWin, grade, pattern, mob, showOdd } = job;
     S.spins++;
     S.totalSpins++;
     updateCounter();
@@ -144,18 +153,19 @@ const Machine = (() => {
     Screen.startAll();
 
     // 図柄決定
-    const symbols = decideSymbols(isWin, pattern, grade);
+    const symbols = decideSymbols(isWin, pattern, grade, showOdd);
 
     // 群予告（当落連動・信頼度約60%）
     if (mob) await Screen.mobYokoku();
 
     switch (pattern.type) {
       case "quick":
-        await wait(quick ? 700 : 1500);
+        // RUSH中は高速消化（通常時 ＜ RUSH の体感差をつける）
+        await wait(quick ? 420 : 1500);
         await Screen.stopReel(0, symbols[0]);
-        await wait(quick ? 150 : 350);
+        await wait(quick ? 90 : 350);
         await Screen.stopReel(2, symbols[2]);
-        await wait(quick ? 150 : 400);
+        await wait(quick ? 90 : 400);
         await Screen.stopReel(1, symbols[1]);
         break;
 
@@ -192,7 +202,7 @@ const Machine = (() => {
     await wait(400);
 
     if (isWin) {
-      await jackpotFlow(symbols, grade);
+      await jackpotFlow(symbols, grade, showOdd);
     } else {
       // モード消化
       if (S.mode !== "normal") {
@@ -204,10 +214,10 @@ const Machine = (() => {
   }
 
   // 図柄インデックス6 = num7 = 「7図柄」（7テンパイ=当り確定のため厳格管理）
-  function decideSymbols(isWin, pattern, grade) {
+  function decideSymbols(isWin, pattern, grade, showOdd) {
     if (isWin) {
-      // 奇数=RUSH突入/継続の強グレード（7図柄を含む） / 偶数=単発・2R
-      const oddSide = grade === "double" || grade === "single";
+      // 奇数図柄＝即RUSH確定 / 偶数図柄＝10R終了時に当落判定に持ち越し
+      const oddSide = !!showOdd;
       const pool = CHARACTERS.filter(c => (c.num % 2 === 1) === oddSide);
       const c = pool[Math.floor(Math.random() * pool.length)];
       const idx = CHARACTERS.indexOf(c);
@@ -348,8 +358,19 @@ const Machine = (() => {
         }
       }
     } else {
-      // SP決着
-      await wait(600);
+      // SP決着：通常時はタメを長く取って当落のドキドキを演出（RUSH中は短く）
+      const tame = (S.mode === "normal") ? 2400 : 500;
+      if (S.mode === "normal") {
+        Screen.lcdMsg("果たして結果は…！？", "alert");
+        AudioMgr.se("drumroll", 0.45);
+        Screen.glowFlash("gold", tame);
+        await wait(tame * 0.6);
+        Screen.flash("#fff", 200);     // 一瞬の煽り
+        await wait(tame * 0.4);
+        Screen.lcdMsg(null);
+      } else {
+        await wait(tame);
+      }
       if (isWin) {
         AudioMgr.se("flash", 0.6);
         AudioMgr.se("hit", 0.7);
@@ -406,21 +427,88 @@ const Machine = (() => {
   }
 
   /* ---------- 大当り ---------- */
-  async function jackpotFlow(symbols, grade) {
+  // 1セット分（10R等）のラウンド消化
+  async function playSet(setNo, totalSets, rounds, baseIdx) {
+    for (let r = 1; r <= rounds; r++) {
+      Screen.jackpotRound(totalSets > 1
+        ? `${setNo}セット目 ROUND ${r} / ${rounds}`
+        : `ROUND ${r} / ${rounds}`);
+      Screen.jackpotChar(CHARACTERS[(baseIdx + r + setNo) % 8].key);
+      roundCatch = 0;
+      Board.attackerOpen = true;
+      const start = Date.now();
+      while (roundCatch < SPEC.ROUND_CATCH && Date.now() - start < SPEC.ROUND_TIMEOUT_MS) {
+        await wait(100);
+      }
+      Board.attackerOpen = false;
+      await wait(650);
+    }
+  }
+
+  // RUSH当落判定（10R終了時）。immediate=奇数図柄等で既に確定済みなら短くお祝いのみ
+  async function rushJudge(willRush, immediate, wasRush) {
+    if (immediate) {
+      AudioMgr.se("fanfare", 0.6);
+      AudioMgr.voice("rush");
+      Screen.glowFlash("rainbow", 1800);
+      Screen.fxKira("kiraLine2", 1600);
+      await Screen.telop("常総RUSH " + (wasRush ? "継続確定！！" : "突入確定！！"), 1800, "story hot");
+      return;
+    }
+    // 当落判定のタメ（ドキドキ）
+    Screen.lcdMsg("RUSH当落 判定中…！", "alert");
+    AudioMgr.se("drumroll", 0.5);
+    Screen.glowFlash("gold", 2800);
+    await wait(2600);
+    Screen.lcdMsg(null);
+    if (willRush) {
+      AudioMgr.se("flash", 0.6);
+      AudioMgr.se("hit", 0.7);
+      AudioMgr.voice("rush");
+      Screen.flash("#ffd23f", 700);
+      Screen.glowFlash("rainbow", 2400);
+      Screen.fxKira("kiraLine2", 1800);
+      await Screen.telop("常総RUSH " + (wasRush ? "継続！！" : "突入！！"), 2000, "story hot");
+    } else {
+      AudioMgr.se("fail", 0.55);
+      Screen.glowFlash("blue", 1200);
+      await Screen.telop("…残念、今回は単発。次回に期待！", 2000, "story");
+    }
+  }
+
+  // 10R×2の継続をギリギリで告知
+  async function nextBonusReveal() {
+    Screen.lcdMsg("継続なるか…！？", "alert");
+    AudioMgr.se("drumroll", 0.5);
+    await wait(2400);   // ギリギリまで引っ張る
+    Screen.lcdMsg(null);
+    AudioMgr.se("fanfare", 0.75);
+    AudioMgr.se("levelup", 0.5);
+    Screen.flash("#ffd23f", 800);
+    Screen.glowFlash("rainbow", 2600);
+    await Screen.telop("NEXT BONUS！！ 10R×2 約3000個！", 2200, "story hot");
+  }
+
+  async function jackpotFlow(symbols, grade, showOdd) {
     S.inJackpot = true;
     Screen.confirmBg(false);
     Screen.clearPose();
     const char = CHARACTERS[symbols[0]];
     const g = GRADES[grade];
     const nextMode = g.next;
+    const rushResult = nextMode === "rush";
+    const wasRush = S.mode === "rush";
+    const immediate = !!showOdd && rushResult;   // 奇数図柄RUSH＝即確定
+    // RUSH中は継続が前提なので判定は短くお祝い演出に
+    const judgeImmediate = immediate || wasRush;
 
     // 連チャン数
-    if (S.mode === "rush") S.renchan++;
+    if (wasRush) S.renchan++;
     else S.renchan = 1;
     S.maxRenchan = Math.max(S.maxRenchan, S.renchan);
     S.hits++;
-    if (nextMode === "rush") S.rushHits++;
-    S.history.push({ rush: nextMode === "rush", label: g.label });
+    if (rushResult) S.rushHits++;
+    S.history.push({ rush: rushResult, label: g.label });
     S.spins = 0;
     updateCounter();
 
@@ -430,67 +518,53 @@ const Machine = (() => {
     AudioMgr.se("levelup", 0.55);
     AudioMgr.voice("jackpot");
     Screen.fxKira("kiraLine1", 2500);
-    Screen.playVideo("kiraBlue", { ms: 4000 });   // 大当りファンファーレ：キラキラ背景動画
+    Screen.playVideo("kiraBlue", { ms: 4000 });
     Screen.flash("#ffd23f", 900);
-    Screen.glow("pulse-fast", grade === "double" ? "rainbow" : "red");  // 大当り：赤（10R×2は虹）
+    Screen.glow("pulse-fast", immediate ? "rainbow" : "red");  // 即確定は虹、それ以外は赤（伏せ）
     Screen.modeBanner(null);
     Screen.stCount(null);
     await wait(1200);
 
     AudioMgr.playBgm("jackpot", 0.4);
-    Screen.jackpotShow(
-      grade === "double" ? "大当り！！ 〜10R×2 BONUS〜"
-        : grade === "mini" ? "BONUS"
-        : "大当り！",
-      char.key
-    );
+    // 即確定でなければ当落は伏せる（偶数図柄でも「大当り！」表記）
+    Screen.jackpotShow(immediate ? "大当り！！ 〜常総RUSH確定〜" : "大当り！", char.key);
     updateModeUI(); // 右打ちランプ点灯
     $("migiuchi").classList.remove("hidden");
     Screen.lcdMsg("右打ちでアタッカーを狙え！", "alert");
-    await wait(1800);
+    await wait(1600);
     Screen.lcdMsg(null);
 
     jackpotGained = 0;
 
-    // ラウンド消化（doubleは10R×2セット）
-    for (let set = 1; set <= g.sets; set++) {
-      for (let r = 1; r <= g.rounds; r++) {
-        Screen.jackpotRound(g.sets > 1
-          ? `${set}回目 ROUND ${r} / ${g.rounds}`
-          : `ROUND ${r} / ${g.rounds}`);
-        Screen.jackpotChar(CHARACTERS[(symbols[0] + r + set) % 8].key);
-        roundCatch = 0;
-        Board.attackerOpen = true;
-        const start = Date.now();
-        while (roundCatch < SPEC.ROUND_CATCH && Date.now() - start < SPEC.ROUND_TIMEOUT_MS) {
-          await wait(100);
-        }
-        Board.attackerOpen = false;
-        await wait(700);
-      }
-      if (set < g.sets) {
-        AudioMgr.se("fanfare", 0.7);
-        Screen.flash("#ffd23f", 700);
-        await Screen.telop("NEXT BONUS！！ さらに約1500個！", 2200, "story hot");
-      }
+    // 1セット目のラウンド消化
+    await playSet(1, g.sets, g.rounds, symbols[0]);
+
+    // ---- 前半（10R等）終了時の判定 ----
+    if (grade === "double") {
+      // まずRUSH当落 → ギリギリで継続(10R×2)告知 → 2セット目
+      await rushJudge(true, judgeImmediate, wasRush);
+      await nextBonusReveal();
+      await playSet(2, g.sets, g.rounds, symbols[0]);
+    } else if (rushResult) {
+      // single / mini：RUSH当落判定
+      await rushJudge(true, judgeImmediate, wasRush);
+    } else {
+      // tanpatsu：転落（単発終了）
+      await rushJudge(false, false, wasRush);
     }
 
     // 終了画面
     Screen.jackpotRound("");
-    if (nextMode === "rush") {
-      Screen.jackpotBalls(`獲得 ${jackpotGained}発  /  ${S.renchan}連チャン！`);
-      AudioMgr.voice("rush");
-      Screen.fxKira("kiraLine2", 2000);
-      await Screen.telop("常総RUSH " + (S.mode === "rush" ? "継続！！" : "突入！！"), 2000, "story hot");
-    } else {
-      Screen.jackpotBalls(`獲得 ${jackpotGained}発`);
-      await Screen.telop("左打ちに戻してください", 2000, "story");
-    }
+    Screen.jackpotBalls(rushResult
+      ? `獲得 ${jackpotGained}発  /  ${S.renchan}連チャン！`
+      : `獲得 ${jackpotGained}発`);
+    await wait(600);
+    if (!rushResult) await Screen.telop("左打ちに戻してください", 1600, "story");
     Screen.jackpotHide();
 
     // モード移行
     S.mode = nextMode;
-    S.modeLeft = nextMode === "rush" ? SPEC.ST_COUNT : 0;
+    S.modeLeft = rushResult ? SPEC.ST_COUNT : 0;
     S.inJackpot = false;
     updateModeUI();
     bgmForMode();

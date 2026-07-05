@@ -53,6 +53,12 @@ body {
   color: #ff8830;
   font-family: "Consolas", monospace;
 }
+.dc-balls-row {
+  border-bottom: 1px solid #3a3355;
+  padding-bottom: 5px;
+  margin-bottom: 3px;
+}
+.dc-balls-row .dc-value { color: #3fe06a; }
 .dc-history {
   margin-top: 8px;
   border-top: 1px solid #3a3355;

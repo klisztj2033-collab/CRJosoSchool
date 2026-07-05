@@ -7,7 +7,7 @@ const AudioMgr = (() => {
     normal:  "assets/bgm/maou_normal_acoustic53.mp3",
     reach:   "assets/bgm/maou_reach_neorock83.mp3",
     jackpot: "assets/bgm/maou_jackpot_neorock81.mp3",
-    rush:    "assets/bgm/maou_rush_8bit29.mp3",
+    rush:    "assets/bgm/RUSH時BGM.mp3",
     // 常総学院シミュレーターより
     nostalgia: "assets/bgm/日常_のどか.mp3",
     sad:     "assets/bgm/悲しみ.mp3",
