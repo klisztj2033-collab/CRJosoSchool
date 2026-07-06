@@ -107,7 +107,7 @@ body {
   to { opacity: .95; }
 }
 
-/* 点灯差分オーバーレイ（大当り・RUSH時に発光。強めに光らせる） */
+/* 点灯差分オーバーレイ（大当り・RUSH時に発光。全体的に明るく光らせる） */
 #cab-glow {
   position: absolute;
   inset: 0;
@@ -115,13 +115,13 @@ body {
   opacity: 0;
   pointer-events: none;
   mix-blend-mode: screen;
-  filter: brightness(1.45) saturate(1.35);
+  filter: brightness(1.9) saturate(1.45);
   z-index: 45;
 }
 #cab-glow.pulse-fast { animation: glowPulse .5s infinite alternate; }
 #cab-glow.pulse-slow { animation: glowPulse 1.7s infinite alternate; }
 @keyframes glowPulse {
-  from { opacity: .6; }
+  from { opacity: .8; }
   to { opacity: 1; }
 }
 

@@ -57,7 +57,7 @@ const CHARACTERS = [
   { num: 3, key: "ishikawa",  name: "石川竜星",   img: "assets/character/石川.png",   quote: "は？論理的に考えて俺が正しいんだが" },
   { num: 4, key: "nishiyama", name: "西山君",     img: "assets/character/西山.png",   quote: "石川、お前それ昨日と言ってること違うぞ" },
   { num: 5, key: "kojima",    name: "小島大輝",   img: "assets/character/小島.png",   quote: "これ、ニコニコで見たやつだ" },
-  { num: 6, key: "yabuki",    name: "矢吹ゆずる", img: "assets/character/矢吹.png",   quote: "……別にいいだろ、どこで食っても" },
+  { num: 6, key: "yabuki",    name: "矢吹ゆずる", img: "assets/character/矢吹.png",   quote: "……このスマホゲー、あと一手で勝てるんだ" },
   { num: 7, key: "kotan",     name: "小丹雄登",   img: "assets/character/小丹.png",   quote: "それ、宇宙世紀で例えると…" },
   { num: 8, key: "chinone",   name: "ちのね かい", img: "assets/character/ちのね.png", quote: "大森くん！大森君！" },
 ];
@@ -201,8 +201,7 @@ const CONFIRM_CHAR_IMGS = {
   kotan:     "imagin/小丹_大当り確定演出用_t.png",
   chinone:   "imagin/ちのね_大当り確定演出用_t.png",
   yabuki:    "imagin/矢吹_大当り確定演出用_t.png",
-  // 小島は確定演出用未用意 → 通常立ち絵で代用
-  kojima:    "assets/character/小島.png",
+  kojima:    "imagin/小島_大当り確定演出用_t.png",
 };
 
 /* 文字系画像（演出中に大きくオーバーレイ表示） */
