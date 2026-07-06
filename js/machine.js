@@ -250,6 +250,7 @@ const Machine = (() => {
   /* 激熱確定背景（出現＝当り確定のプレミア演出） */
   async function doConfirm(symbols) {
     const seven = symbols[0] === 6 && symbols[2] === 6;
+    AudioMgr.playBgm("rush");   // 確定の特別曲（RUSH時BGM）
     AudioMgr.se("kyuin3", 0.6);
     AudioMgr.voice("atsui");
     Screen.reelsVisible(false);
@@ -420,8 +421,8 @@ const Machine = (() => {
   }
 
   async function runZenkaiten(symbols) {
-    // プレミア全回転
-    AudioMgr.playBgm("reach");
+    // プレミア全回転（特別曲 RUSH時BGM を流す）
+    AudioMgr.playBgm("rush");
     await wait(1200);
     AudioMgr.se("bingo", 0.55);
     Screen.setBg(BGS.wafuUme, false);
