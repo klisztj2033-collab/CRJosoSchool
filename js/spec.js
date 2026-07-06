@@ -218,6 +218,15 @@ const SPSP_IMGS = {
   ito:   "imagin/伊藤輝明_選挙.png",
 };
 
+/* RUSH演出用の画像（ロゴ・宝石数字・バツ） */
+const RUSH_LOGO = "imagin/常総RUSH_t.png";
+const BATSU_IMG = "imagin/×_t.png";
+const RUSH_NUM_IMGS = {
+  1: "imagin/(1)_t.png", 2: "imagin/(2)_t.png", 3: "imagin/(3)_t.png",
+  4: "imagin/(4)_t.png", 5: "imagin/(5)_t.png", 6: "imagin/(6)_t.png",
+  7: "imagin/(7)_t.png", 8: "imagin/(8)_t.png", 9: "imagin/(9)_t.png",
+};
+
 /* 群予告の出現判定（当落連動で信頼度を約60%に） */
 function decideMob(isWin, isRush) {
   const pWin  = isRush ? 0.60 : 0.66;    // 当たり時に群予告が出る率

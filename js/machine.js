@@ -61,9 +61,12 @@ const Machine = (() => {
     if (S.mode === "rush") {
       Screen.modeBanner("常総RUSH", "rush");
       Screen.stCount(`残り ${S.modeLeft}回`);
+      // 残り9回以下はラストカウントダウンの宝石数字を大きく表示
+      Screen.rushNum(S.modeLeft <= 9 ? S.modeLeft : null);
     } else {
       Screen.modeBanner(null);
       Screen.stCount(null);
+      Screen.rushNum(null);
     }
     if (!S.inJackpot) {
       if (S.mode === "rush") Screen.glow("pulse-slow", "rainbow");
@@ -471,7 +474,8 @@ const Machine = (() => {
       AudioMgr.voice("rush");
       Screen.glowFlash("rainbow", 1800);
       Screen.fxKira("kiraLine2", 1600);
-      Screen.showTextImg("rushKakutei", 1900);   // 常総RUSH確定文字
+      if (!wasRush) Screen.rushSplash("logo", 1900);        // 突入：常総RUSHロゴ
+      else Screen.showTextImg("rushKakutei", 1900);         // 継続：確定文字
       await wait(1800);
       return;
     }
@@ -488,11 +492,13 @@ const Machine = (() => {
       Screen.flash("#ffd23f", 700);
       Screen.glowFlash("rainbow", 2400);
       Screen.fxKira("kiraLine2", 1800);
-      Screen.showTextImg("rushKakutei", 2100);   // 常総RUSH確定文字
+      if (!wasRush) Screen.rushSplash("logo", 2200);        // 突入：常総RUSHロゴ
+      else Screen.showTextImg("rushKakutei", 2100);         // 継続：確定文字
       await wait(2000);
     } else {
       AudioMgr.se("fail", 0.55);
       Screen.glowFlash("blue", 1200);
+      Screen.rushSplash("batsu", 1900);   // 単発転落：×の大表示
       await Screen.telop("…残念、今回は単発。次回に期待！", 2000, "story");
     }
   }
@@ -544,6 +550,7 @@ const Machine = (() => {
     Screen.glow("pulse-fast", immediate ? "rainbow" : "red");  // 即確定は虹、それ以外は赤（伏せ）
     Screen.modeBanner(null);
     Screen.stCount(null);
+    Screen.rushNum(null);
     await wait(1200);
 
     AudioMgr.playBgm("jackpot", 0.4);
@@ -603,6 +610,7 @@ const Machine = (() => {
     updateModeUI();
     AudioMgr.se("chime", 0.35);  // 放課後のチャイム
     AudioMgr.playBgm("sad");
+    Screen.rushSplash("batsu", 2000);   // RUSH終了：×の大表示
     await Screen.telop("RUSH終了…… また明日から頑張ろう", 2200, "story");
     await wait(1000);
     AudioMgr.playBgm("normal");

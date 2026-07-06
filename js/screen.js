@@ -204,11 +204,20 @@ const Screen = (() => {
   }
 
   /* ---------- モード表示 ---------- */
+  // RUSH中は常総RUSHロゴ画像を、それ以外はテキストバナーを表示
   function modeBanner(text, cls) {
     const b = $("mode-banner");
-    if (!text) { b.className = "hidden"; return; }
-    b.textContent = text;
-    b.className = cls || "";
+    const logo = $("rush-logo");
+    if (!text) { b.className = "hidden"; logo.classList.add("hidden"); return; }
+    if (cls === "rush") {
+      b.className = "hidden";
+      if (!logo.src.endsWith(encodeURI(RUSH_LOGO))) logo.src = RUSH_LOGO;
+      logo.classList.remove("hidden");
+    } else {
+      logo.classList.add("hidden");
+      b.textContent = text;
+      b.className = cls || "";
+    }
   }
 
   function stCount(text) {
@@ -216,6 +225,31 @@ const Screen = (() => {
     if (!text) { el.className = "hidden"; return; }
     el.textContent = text;
     el.className = "";
+  }
+
+  /* ラストカウントダウンの宝石数字（1〜9、nullで消灯） */
+  function rushNum(n) {
+    const el = $("rush-num");
+    if (!n || !RUSH_NUM_IMGS[n]) { el.classList.add("hidden"); return; }
+    el.src = RUSH_NUM_IMGS[n];
+    el.classList.remove("hidden");
+    el.style.animation = "none";
+    void el.offsetWidth;
+    el.style.animation = "";
+  }
+
+  /* 大きな画像スプラッシュ（RUSH突入ロゴ・×など。keyは"logo"|"batsu"|パス） */
+  let splashTimer = null;
+  function rushSplash(key, ms = 1800) {
+    const el = $("rush-splash");
+    if (!key) { el.classList.add("hidden"); el.classList.remove("show"); return; }
+    const src = key === "logo" ? RUSH_LOGO : key === "batsu" ? BATSU_IMG : key;
+    el.src = src;
+    el.classList.remove("hidden");
+    el.classList.add("show");
+    void el.offsetWidth;
+    if (splashTimer) clearTimeout(splashTimer);
+    if (ms > 0) splashTimer = setTimeout(() => { el.classList.add("hidden"); el.classList.remove("show"); }, ms);
   }
 
   function lcdMsg(text, cls = "") {
@@ -374,7 +408,7 @@ const Screen = (() => {
     miniDigits, flash, telop, reachTitle, cutin, mobYokoku, pushButton,
     modeBanner, stCount, lcdMsg, renderHolds, glow, glowFlash, fxKira,
     playVideo, stopVideo, tenpaiPose, winPose, clearPose, spinDisplay, confirmBg,
-    showTextImg, hideTextImg,
+    showTextImg, hideTextImg, rushNum, rushSplash,
     jackpotShow, jackpotRound, jackpotBalls, jackpotChar, jackpotHide,
     get current() { return current; },
   };

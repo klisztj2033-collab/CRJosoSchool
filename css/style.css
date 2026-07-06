@@ -501,10 +501,10 @@ body {
   padding-bottom: 4px;
 }
 
-/* モードバナー・ST残り */
+/* モードバナー・ST残り（中央の人物の顔を避けて下部に配置） */
 #mode-banner {
   position: absolute;
-  left: 24px; top: 34px;
+  left: 20px; bottom: 118px;
   z-index: 20;
   font-size: 13px;
   font-weight: 900;
@@ -521,16 +521,62 @@ body {
   background: linear-gradient(90deg, #1560d0, #30c0ff);
   color: #fff;
 }
+/* RUSHロゴ（モード表示・下部） */
+#rush-logo {
+  position: absolute;
+  left: 14px; bottom: 96px;
+  width: 138px; height: auto;
+  z-index: 20;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.6));
+  animation: pulseHot 1s infinite alternate;
+}
 #st-count {
   position: absolute;
-  left: 24px; top: 62px;
+  right: 16px; bottom: 108px;
+  left: auto;
   z-index: 20;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: bold;
   color: #ffd23f;
-  background: rgba(0,0,0,0.55);
-  padding: 2px 8px;
+  background: rgba(0,0,0,0.6);
+  padding: 3px 10px;
   border-radius: 4px;
+}
+/* ラストカウントダウン用の宝石数字（下部中央に大きく） */
+#rush-num {
+  position: absolute;
+  left: 50%; bottom: 66px;
+  transform: translateX(-50%);
+  height: 42%;
+  width: auto;
+  z-index: 22;
+  pointer-events: none;
+  filter: drop-shadow(0 0 12px rgba(255,215,80,0.8));
+  animation: rushNumPop .35s cubic-bezier(.3,1.5,.5,1);
+}
+@keyframes rushNumPop {
+  0% { transform: translateX(-50%) scale(1.8); opacity: 0; }
+  60% { transform: translateX(-50%) scale(0.92); opacity: 1; }
+  100% { transform: translateX(-50%) scale(1); }
+}
+/* RUSH突入ロゴ／×の大表示（中央） */
+#rush-splash {
+  position: absolute;
+  left: 50%; top: 46%;
+  transform: translate(-50%, -50%);
+  max-width: 94%;
+  max-height: 70%;
+  width: auto; height: auto;
+  z-index: 27;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.7));
+}
+#rush-splash.show { animation: splashIn .4s cubic-bezier(.3,1.5,.5,1); }
+@keyframes splashIn {
+  0% { transform: translate(-50%, -50%) scale(2.4) rotate(-6deg); opacity: 0; }
+  60% { transform: translate(-50%, -50%) scale(0.95) rotate(2deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(0); }
 }
 #lcd-msg {
   position: absolute;

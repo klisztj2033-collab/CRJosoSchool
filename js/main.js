@@ -75,6 +75,7 @@
     ...Object.values(SPSP_IMGS),
     ...Object.values(CONFIRM_CHAR_IMGS),
     ...Object.values(ZUGARA_IMGS),
+    RUSH_LOGO, BATSU_IMG, ...Object.values(RUSH_NUM_IMGS),
   ];
   for (const p of preloadList) {
     const img = new Image();
