@@ -452,29 +452,30 @@ body {
   position: absolute;
   inset: 0;
   z-index: 28;
+  overflow: hidden;   /* 拡大キャラの脚部などはみ出しをクリップ */
   background: linear-gradient(135deg, rgba(120,20,20,0.92), rgba(180,120,10,0.88));
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 50px 24px 84px;
 }
-/* 大当り確定演出用キャラを大きく背景のように表示 */
+/* 大当り確定演出用キャラを大きく表示（上半身メイン・顔は上端に固定して見切れ防止） */
 #jp-charbg {
   position: absolute;
-  left: 50%; bottom: 0;
+  left: 50%; top: 3%;
   transform: translateX(-50%);
-  height: 96%;
+  height: 185%;            /* 大きく拡大して上半身を映す（脚は下端で見切れる） */
   width: auto;
-  max-width: 130%;
+  max-width: none;
   object-fit: contain;
-  object-position: bottom;
+  object-position: top;
   z-index: 0;
-  filter: drop-shadow(0 0 18px rgba(255,255,255,0.45));
+  filter: drop-shadow(0 0 18px rgba(255,255,255,0.5));
   animation: jpCharIn .5s ease-out;
   pointer-events: none;
 }
 @keyframes jpCharIn {
-  0% { transform: translateX(-50%) scale(1.15); opacity: 0; }
+  0% { transform: translateX(-50%) scale(1.12); opacity: 0; }
   100% { transform: translateX(-50%) scale(1); opacity: 1; }
 }
 #jackpot-layer > :not(#jp-charbg) { position: relative; z-index: 1; }
