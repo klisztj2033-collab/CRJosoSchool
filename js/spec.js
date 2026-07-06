@@ -64,6 +64,18 @@ const CHARACTERS = [
 
 const CHIBI_IMGS = ["assets/character/ちびきゃら01.png", "assets/character/ちびキャラ02.png"];
 
+/* リール図柄画像（数字＋キャラ＋宝石装飾。番号1〜8に対応） */
+const ZUGARA_IMGS = {
+  1: "imagin/図柄１_t.png",
+  2: "imagin/図柄２_t.png",
+  3: "imagin/図柄３_t.png",
+  4: "imagin/図柄４_t.png",
+  5: "imagin/図柄５_t.png",
+  6: "imagin/図柄６_t.png",
+  7: "imagin/図柄７_t.png",
+  8: "imagin/図柄８_t.png",
+};
+
 /* ---------- 背景 ---------- */
 const BGS = {
   // 常総学院シミュレーターより

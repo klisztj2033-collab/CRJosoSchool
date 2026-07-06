@@ -74,6 +74,7 @@
     ...Object.values(TEXT_IMGS),
     ...Object.values(SPSP_IMGS),
     ...Object.values(CONFIRM_CHAR_IMGS),
+    ...Object.values(ZUGARA_IMGS),
   ];
   for (const p of preloadList) {
     const img = new Image();

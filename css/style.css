@@ -210,16 +210,14 @@ body {
   left: 50%; top: 42%;
   transform: translate(-50%, -50%);
   display: flex;
-  gap: 10px;
+  gap: 6px;
   z-index: 5;
   transition: opacity .3s;
 }
 .reel {
-  width: 104px; height: 136px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 2px solid #c9a84c;
-  border-radius: 8px;
-  overflow: hidden;
+  width: 118px; height: 118px;
+  background: transparent;   /* 図柄画像そのものを表示（枠・白背景なし） */
+  overflow: visible;
   position: relative;
 }
 .reel.spinning .symbol img { filter: blur(3px); }
@@ -234,10 +232,9 @@ body {
 /* テンパイ図柄（左右が揃った瞬間の決めポーズ） */
 .reel.tenpai {
   animation: tenpaiPulse .5s ease-in-out infinite alternate;
-  border-color: #ff4040;
-  box-shadow: 0 0 16px #ff4040, 0 0 32px rgba(255,64,64,.6);
   z-index: 6;
 }
+.reel.tenpai .symbol img { filter: drop-shadow(0 0 10px #ff4040) drop-shadow(0 0 18px rgba(255,64,64,.7)); }
 @keyframes tenpaiPulse {
   from { transform: scale(1); }
   to { transform: scale(1.09); }
@@ -245,9 +242,9 @@ body {
 /* 当り確定図柄（7図柄など） */
 .reel.win {
   animation: winPose .45s ease-out;
-  border-color: #ffd23f;
-  box-shadow: 0 0 22px #ffd23f, 0 0 44px rgba(255,210,63,.7);
+  z-index: 6;
 }
+.reel.win .symbol img { filter: drop-shadow(0 0 12px #ffd23f) drop-shadow(0 0 24px rgba(255,210,63,.8)); }
 @keyframes winPose {
   0% { transform: scale(1.35) rotate(-4deg); }
   50% { transform: scale(0.92) rotate(2deg); }
@@ -256,24 +253,10 @@ body {
 .symbol { width: 100%; height: 100%; position: relative; }
 .symbol img {
   width: 100%; height: 100%;
-  object-fit: cover;
-  object-position: top;
+  object-fit: contain;   /* 図柄全体を表示 */
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.6));
 }
-.symbol .num {
-  position: absolute;
-  right: 3px; bottom: 3px;
-  background: #1a2440;
-  color: #fff;
-  font-size: 20px;
-  font-weight: 900;
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #c9a84c;
-}
-.symbol.odd .num { background: #a02020; border-color: #ffd23f; }
+.symbol .num { display: none; }   /* 数字は図柄画像に含まれるため非表示 */
 
 #mini-digits {
   position: absolute;

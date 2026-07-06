@@ -43,7 +43,8 @@ const Screen = (() => {
     current[i] = charIdx;
     const c = CHARACTERS[charIdx];
     const sym = reels[i].querySelector(".symbol");
-    sym.querySelector("img").src = c.img;
+    // 図柄画像（数字＋キャラ入り）。用意が無ければキャラ立ち絵にフォールバック
+    sym.querySelector("img").src = (ZUGARA_IMGS && ZUGARA_IMGS[c.num]) || c.img;
     sym.querySelector(".num").textContent = c.num;
     sym.classList.toggle("odd", c.num % 2 === 1);
   }
