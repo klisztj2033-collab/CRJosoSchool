@@ -90,7 +90,8 @@ body {
   filter: drop-shadow(0 0 30px rgba(201, 168, 76, 0.2));
 }
 
-/* 常時点灯：演出なしの待機時も筐体をフル点灯状態にする（点灯あり画像を重ねる） */
+/* 常時点灯：演出なしの待機時も点灯あり画像で点灯させる。
+ * ただし彩度・明るさを抑えた「控えめ点灯」にして、演出時の鮮やかな発光と区別する */
 #cab-baselit {
   position: absolute;
   inset: 0;
@@ -98,11 +99,12 @@ body {
   z-index: 2;
   pointer-events: none;
   opacity: 1;
-  animation: baseBreath 3.4s ease-in-out infinite alternate;
+  filter: saturate(0.4) brightness(0.62);   /* 彩度・明るさを落として控えめに */
+  animation: baseBreath 3.6s ease-in-out infinite alternate;
 }
 @keyframes baseBreath {
-  from { opacity: .9; }
-  to { opacity: 1; }
+  from { opacity: .78; }
+  to { opacity: .95; }
 }
 
 /* 点灯差分オーバーレイ（大当り・RUSH時に発光。強めに光らせる） */
