@@ -58,6 +58,8 @@ const Machine = (() => {
 
   function refreshRushInfo() {
     const showRushInfo = (S.mode === "rush" && !S.inJackpot) || (S.inJackpot && S.rushInfoInJackpot);
+    $("rush-info").classList.toggle("jackpot", S.inJackpot && S.rushInfoInJackpot);
+    $("jackpot-layer").classList.toggle("rush-info-only", S.inJackpot && S.rushInfoInJackpot);
     Screen.rushInfo(showRushInfo, S.renchan, S.rushGained, S.inJackpot ? null : S.modeLeft);
   }
 

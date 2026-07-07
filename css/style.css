@@ -500,6 +500,11 @@ body {
   text-shadow: 0 1px 3px #000;
   padding-bottom: 4px;
 }
+#jackpot-layer.rush-info-only #jp-title,
+#jackpot-layer.rush-info-only #jp-round,
+#jackpot-layer.rush-info-only #jp-balls {
+  display: none;
+}
 
 /* モードバナー・ST残り（中央の人物の顔を避けて下部に配置） */
 #mode-banner {
@@ -570,6 +575,33 @@ body {
   color: #ffe9a8; font-weight: 900; font-size: 14px;
   text-shadow: 0 1px 3px #000, 0 0 6px rgba(255,140,40,.8);
   margin: 0 2px;
+}
+#rush-info.jackpot {
+  left: -42px;
+  right: auto;
+  bottom: 42px;
+  width: 100%;
+  align-items: flex-start;
+  gap: 8px;
+}
+#rush-info.jackpot #rush-renchan,
+#rush-info.jackpot #rush-gain {
+  margin-left: 22px;
+  gap: 8px;
+}
+#rush-info.jackpot #rush-renchan .rush-logo-sm { height: 90px; }
+#rush-info.jackpot #rush-renchan .jd-x { height: 66px; }
+#rush-info.jackpot .jd { height: 90px; }
+#rush-info.jackpot #rush-gain .jd { height: 78px; }
+#rush-info.jackpot .rg-label {
+  font-size: 36px;
+  text-shadow: 0 2px 6px #000, 0 0 14px rgba(255,140,40,.95);
+}
+#rush-info.jackpot .jd-zero {
+  height: 78px;
+  min-width: 52px;
+  font-size: 72px;
+  line-height: 78px;
 }
 /* RUSH突入ロゴ／×の表示（中央・大きすぎない程度） */
 #rush-splash {
