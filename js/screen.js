@@ -218,13 +218,14 @@ const Screen = (() => {
     el.className = "";
   }
 
-  /* 数字を宝石数字画像の桁列HTMLに変換（0は宝石画像が無いのでスタイル文字で代用） */
+  /* 数字を宝石数字画像の桁列HTMLに変換 */
   function digitHtml(num, cls) {
-    return String(num).split("").map(d =>
-      d === "0"
-        ? `<span class="jd-zero">0</span>`
-        : `<img class="${cls}" src="${encodeURI(RUSH_NUM_IMGS[d])}" alt="${d}">`
-    ).join("");
+    return String(num).split("").map(d => {
+      const src = RUSH_NUM_IMGS[d];
+      return src
+        ? `<img class="${cls}" src="${encodeURI(src)}" alt="${d}">`
+        : `<span class="jd-zero">${d}</span>`;
+    }).join("");
   }
 
   /* RUSH情報パネル（常総RUSH×連チャン数／獲得玉数／残り回数） */

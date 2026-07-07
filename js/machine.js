@@ -55,6 +55,11 @@ const Machine = (() => {
     }
   }
 
+  function refreshRushInfo() {
+    const showRushInfo = S.mode === "rush" && !S.inJackpot;
+    Screen.rushInfo(showRushInfo, S.renchan, S.rushGained, S.modeLeft);
+  }
+
   function updateModeUI() {
     const migiuchi = S.mode !== "normal" || S.inJackpot;
     $("migiuchi").classList.toggle("hidden", !migiuchi);
@@ -64,12 +69,11 @@ const Machine = (() => {
       Screen.modeBanner(null);
       Screen.stCount(null);
       // 常総RUSH×連チャン数／獲得玉数／残り回数を宝石数字で表示
-      Screen.rushInfo(true, S.renchan, S.rushGained, S.modeLeft);
     } else {
       Screen.modeBanner(null);
       Screen.stCount(null);
-      Screen.rushInfo(false);
     }
+    refreshRushInfo();
     if (!S.inJackpot) {
       if (S.mode === "rush") Screen.glow("pulse-slow", "rainbow");
       else Screen.glow("");
@@ -89,7 +93,10 @@ const Machine = (() => {
 
   function onDenchu() {
     updateBalls(SPEC.DENCHU_PAY);
-    if (S.rushActive) { S.rushGained += SPEC.DENCHU_PAY; }
+    if (S.rushActive) {
+      S.rushGained += SPEC.DENCHU_PAY;
+      refreshRushInfo();
+    }
     if (S.mode !== "normal") enqueueSpin();
   }
 
@@ -98,7 +105,10 @@ const Machine = (() => {
   function onAttacker() {
     updateBalls(SPEC.ATTACKER_PAY);
     jackpotGained += SPEC.ATTACKER_PAY;
-    if (S.rushActive) { S.rushGained += SPEC.ATTACKER_PAY; }
+    if (S.rushActive) {
+      S.rushGained += SPEC.ATTACKER_PAY;
+      refreshRushInfo();
+    }
     roundCatch++;
     Screen.jackpotBalls(`獲得 ${jackpotGained}発`);
   }
