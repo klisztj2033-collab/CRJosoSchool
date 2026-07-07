@@ -292,6 +292,8 @@ const Screen = (() => {
   function jackpotShow(title, charKey) {
     const jl = $("jackpot-layer");
     jl.classList.remove("hidden");
+    jl.classList.add("image-text");
+    jl.classList.toggle("rush-confirmed", title && title.includes("RUSH"));
     $("jp-title").textContent = title;
     $("jp-round").textContent = "";
     $("jp-balls").textContent = "";
@@ -308,7 +310,11 @@ const Screen = (() => {
     const bg = $("jp-charbg");
     if (bg) bg.src = bigCharImg(charKey);
   }
-  function jackpotHide() { $("jackpot-layer").classList.add("hidden"); }
+  function jackpotHide() {
+    const jl = $("jackpot-layer");
+    jl.classList.add("hidden");
+    jl.classList.remove("image-text", "rush-confirmed", "rush-info-only");
+  }
 
   /* ---------- 演出動画（黒背景素材をscreen合成で重ねる） ---------- */
   const fxVideo = $("fx-video");

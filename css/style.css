@@ -479,6 +479,28 @@ body {
   100% { transform: translateX(-50%) scale(1); opacity: 1; }
 }
 #jackpot-layer > :not(#jp-charbg) { position: relative; z-index: 1; }
+#jp-image-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: -18px;
+  pointer-events: none;
+}
+#jp-image-text img {
+  width: auto;
+  max-width: 78%;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 10px rgba(0,0,0,.75));
+}
+#jp-atari-img { height: 64px; }
+#jp-rush-img { height: 52px; }
+#jackpot-layer:not(.rush-confirmed) #jp-rush-img { display: none; }
+#jackpot-layer.image-text #jp-title,
+#jackpot-layer.image-text #jp-round,
+#jackpot-layer.image-text #jp-balls {
+  display: none;
+}
 #jp-title {
   font-size: 24px;
   font-weight: 900;
@@ -577,17 +599,22 @@ body {
   margin: 0 2px;
 }
 #rush-info.jackpot {
-  left: -42px;
+  left: 18px;
   right: auto;
-  bottom: 42px;
+  bottom: 104px;
   width: 100%;
   align-items: flex-start;
-  gap: 8px;
+  gap: 4px;
 }
 #rush-info.jackpot #rush-renchan,
 #rush-info.jackpot #rush-gain {
   margin-left: 22px;
-  gap: 8px;
+  gap: 3px;
+}
+#rush-info.jackpot #rush-gain .jd + .jd,
+#rush-info.jackpot #rush-gain .jd-zero + .jd,
+#rush-info.jackpot #rush-gain .jd + .jd-zero {
+  margin-left: -8px;
 }
 #rush-info.jackpot #rush-renchan .rush-logo-sm { height: 90px; }
 #rush-info.jackpot #rush-renchan .jd-x { height: 33px; }
@@ -664,15 +691,15 @@ body {
 #migiuchi {
   position: absolute;
   left: 890px; top: 645px;
-  background: #d01515;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 900;
-  padding: 5px 10px;
-  border-radius: 6px;
-  box-shadow: 0 0 12px #ff4040;
+  background: transparent;
+  padding: 0;
   animation: pulseHot .5s infinite alternate;
   z-index: 10;
+}
+#migiuchi img {
+  width: 142px;
+  height: auto;
+  filter: drop-shadow(0 0 10px #ff4040) drop-shadow(0 2px 3px rgba(0,0,0,.75));
 }
 
 /* ---------- 操作パネル ---------- */

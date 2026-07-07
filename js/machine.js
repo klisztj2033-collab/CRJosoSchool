@@ -585,12 +585,10 @@ const Machine = (() => {
     AudioMgr.playBgm("jackpot", 0.4);
     // 即確定でなければ当落は伏せる（偶数図柄でも「大当り！」表記）
     Screen.jackpotShow(immediate ? "大当り！！ 〜常総RUSH確定〜" : "大当り！", char.key);
-    Screen.showTextImg("atari", 1900);   // 大当たり文字画像
     updateModeUI(); // 右打ちランプ点灯
     $("migiuchi").classList.remove("hidden");
     await wait(1700);
-    Screen.showTextImg("migiuchi", 1600); // 右打ち文字画像
-    Screen.lcdMsg("右打ちでアタッカーを狙え！", "alert");
+    Screen.lcdMsg(null);
     await wait(1500);
     Screen.lcdMsg(null);
 
