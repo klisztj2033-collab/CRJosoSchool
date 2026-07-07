@@ -19,6 +19,8 @@ const Machine = (() => {
     rushHits: 0,
     renchan: 0,
     maxRenchan: 0,
+    rushGained: 0,           // RUSH突入からの累計獲得玉数
+    rushActive: false,       // RUSHセッション中フラグ
     history: [],             // {type:"rush10"|"jitan4"|...}
   };
 
@@ -59,14 +61,14 @@ const Machine = (() => {
     Board.denchuOpen = S.mode !== "normal";
 
     if (S.mode === "rush") {
-      Screen.modeBanner("常総RUSH", "rush");
-      Screen.stCount(`残り ${S.modeLeft}回`);
-      // 残り9回以下はラストカウントダウンの宝石数字を大きく表示
-      Screen.rushNum(S.modeLeft <= 9 ? S.modeLeft : null);
+      Screen.modeBanner(null);
+      Screen.stCount(null);
+      // 常総RUSH×連チャン数／獲得玉数／残り回数を宝石数字で表示
+      Screen.rushInfo(true, S.renchan, S.rushGained, S.modeLeft);
     } else {
       Screen.modeBanner(null);
       Screen.stCount(null);
-      Screen.rushNum(null);
+      Screen.rushInfo(false);
     }
     if (!S.inJackpot) {
       if (S.mode === "rush") Screen.glow("pulse-slow", "rainbow");
@@ -87,6 +89,7 @@ const Machine = (() => {
 
   function onDenchu() {
     updateBalls(SPEC.DENCHU_PAY);
+    if (S.rushActive) { S.rushGained += SPEC.DENCHU_PAY; }
     if (S.mode !== "normal") enqueueSpin();
   }
 
@@ -95,6 +98,7 @@ const Machine = (() => {
   function onAttacker() {
     updateBalls(SPEC.ATTACKER_PAY);
     jackpotGained += SPEC.ATTACKER_PAY;
+    if (S.rushActive) { S.rushGained += SPEC.ATTACKER_PAY; }
     roundCatch++;
     Screen.jackpotBalls(`獲得 ${jackpotGained}発`);
   }
@@ -529,6 +533,12 @@ const Machine = (() => {
     // RUSH中は継続が前提なので判定は短くお祝い演出に
     const judgeImmediate = immediate || wasRush;
 
+    // RUSHセッション管理：初回突入で獲得玉数をリセット、継続は累積を維持
+    if (rushResult) {
+      if (!wasRush) { S.rushGained = 0; }   // 初回突入でリセット
+      S.rushActive = true;
+    }
+
     // 連チャン数
     if (wasRush) S.renchan++;
     else S.renchan = 1;
@@ -550,7 +560,7 @@ const Machine = (() => {
     Screen.glow("pulse-fast", immediate ? "rainbow" : "red");  // 即確定は虹、それ以外は赤（伏せ）
     Screen.modeBanner(null);
     Screen.stCount(null);
-    Screen.rushNum(null);
+    Screen.rushInfo(false);
     await wait(1200);
 
     AudioMgr.playBgm("jackpot", 0.4);
@@ -607,6 +617,7 @@ const Machine = (() => {
     S.mode = "normal";
     S.modeLeft = 0;
     S.renchan = 0;
+    S.rushActive = false;   // RUSHセッション終了
     updateModeUI();
     AudioMgr.se("chime", 0.35);  // 放課後のチャイム
     AudioMgr.playBgm("sad");

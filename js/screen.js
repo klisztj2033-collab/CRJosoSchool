@@ -204,20 +204,11 @@ const Screen = (() => {
   }
 
   /* ---------- モード表示 ---------- */
-  // RUSH中は常総RUSHロゴ画像を、それ以外はテキストバナーを表示
   function modeBanner(text, cls) {
     const b = $("mode-banner");
-    const logo = $("rush-logo");
-    if (!text) { b.className = "hidden"; logo.classList.add("hidden"); return; }
-    if (cls === "rush") {
-      b.className = "hidden";
-      if (!logo.src.endsWith(encodeURI(RUSH_LOGO))) logo.src = RUSH_LOGO;
-      logo.classList.remove("hidden");
-    } else {
-      logo.classList.add("hidden");
-      b.textContent = text;
-      b.className = cls || "";
-    }
+    if (!text) { b.className = "hidden"; return; }
+    b.textContent = text;
+    b.className = cls || "";
   }
 
   function stCount(text) {
@@ -227,15 +218,27 @@ const Screen = (() => {
     el.className = "";
   }
 
-  /* ラストカウントダウンの宝石数字（1〜9、nullで消灯） */
-  function rushNum(n) {
-    const el = $("rush-num");
-    if (!n || !RUSH_NUM_IMGS[n]) { el.classList.add("hidden"); return; }
-    el.src = RUSH_NUM_IMGS[n];
-    el.classList.remove("hidden");
-    el.style.animation = "none";
-    void el.offsetWidth;
-    el.style.animation = "";
+  /* 数字を宝石数字画像の桁列HTMLに変換（0は宝石画像が無いのでスタイル文字で代用） */
+  function digitHtml(num, cls) {
+    return String(num).split("").map(d =>
+      d === "0"
+        ? `<span class="jd-zero">0</span>`
+        : `<img class="${cls}" src="${encodeURI(RUSH_NUM_IMGS[d])}" alt="${d}">`
+    ).join("");
+  }
+
+  /* RUSH情報パネル（常総RUSH×連チャン数／獲得玉数／残り回数） */
+  function rushInfo(show, renchan, gainBalls, remain) {
+    const panel = $("rush-info");
+    if (!show) { panel.classList.add("hidden"); return; }
+    $("rush-renchan").innerHTML =
+      `<img class="rush-logo-sm" src="${encodeURI(RUSH_LOGO)}" alt="常総RUSH">` +
+      `<img class="jd-x" src="${encodeURI(BATSU_IMG)}" alt="×">` +
+      digitHtml(Math.max(1, renchan || 1), "jd");
+    $("rush-gain").innerHTML =
+      `<span class="rg-label">獲得</span>` + digitHtml(gainBalls || 0, "jd") + `<span class="rg-label">玉</span>`;
+    $("rush-remain").innerHTML = `<span class="rg-label" style="font-size:11px">残り ${remain}回</span>`;
+    panel.classList.remove("hidden");
   }
 
   /* 大きな画像スプラッシュ（RUSH突入ロゴ・×など。keyは"logo"|"batsu"|パス） */
@@ -408,7 +411,7 @@ const Screen = (() => {
     miniDigits, flash, telop, reachTitle, cutin, mobYokoku, pushButton,
     modeBanner, stCount, lcdMsg, renderHolds, glow, glowFlash, fxKira,
     playVideo, stopVideo, tenpaiPose, winPose, clearPose, spinDisplay, confirmBg,
-    showTextImg, hideTextImg, rushNum, rushSplash,
+    showTextImg, hideTextImg, rushInfo, rushSplash,
     jackpotShow, jackpotRound, jackpotBalls, jackpotChar, jackpotHide,
     get current() { return current; },
   };
