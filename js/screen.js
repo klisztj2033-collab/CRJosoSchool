@@ -292,8 +292,6 @@ const Screen = (() => {
   function jackpotShow(title, charKey) {
     const jl = $("jackpot-layer");
     jl.classList.remove("hidden");
-    jl.classList.add("image-text");
-    jl.classList.toggle("rush-confirmed", title && title.includes("RUSH"));
     $("jp-title").textContent = title;
     $("jp-round").textContent = "";
     $("jp-balls").textContent = "";
@@ -313,7 +311,7 @@ const Screen = (() => {
   function jackpotHide() {
     const jl = $("jackpot-layer");
     jl.classList.add("hidden");
-    jl.classList.remove("image-text", "rush-confirmed", "rush-info-only");
+    jl.classList.remove("rush-info-only");
   }
 
   /* ---------- 演出動画（黒背景素材をscreen合成で重ねる） ---------- */

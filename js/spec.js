@@ -208,8 +208,6 @@ const CONFIRM_CHAR_IMGS = {
 const TEXT_IMGS = {
   reach:       "imagin/リーチ文字.png",
   migiuchi:    "imagin/右打ち文字.png",
-  rushKakutei: "imagin/常総RUSH確定文字.png",
-  atari:       "imagin/大当たり文字.png",
 };
 
 /* 生徒会長決戦（SPSP）用の選挙1枚絵 */
