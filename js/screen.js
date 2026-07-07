@@ -238,7 +238,9 @@ const Screen = (() => {
       digitHtml(Math.max(1, renchan || 1), "jd");
     $("rush-gain").innerHTML =
       `<span class="rg-label">獲得</span>` + digitHtml(gainBalls || 0, "jd") + `<span class="rg-label">玉</span>`;
-    $("rush-remain").innerHTML = `<span class="rg-label" style="font-size:11px">残り ${remain}回</span>`;
+    $("rush-remain").innerHTML = remain == null
+      ? ""
+      : `<span class="rg-label" style="font-size:11px">残り ${remain}回</span>`;
     panel.classList.remove("hidden");
   }
 

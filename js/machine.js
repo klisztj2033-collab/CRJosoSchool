@@ -21,6 +21,7 @@ const Machine = (() => {
     maxRenchan: 0,
     rushGained: 0,           // RUSH突入からの累計獲得玉数
     rushActive: false,       // RUSHセッション中フラグ
+    rushInfoInJackpot: false,
     history: [],             // {type:"rush10"|"jitan4"|...}
   };
 
@@ -56,8 +57,13 @@ const Machine = (() => {
   }
 
   function refreshRushInfo() {
-    const showRushInfo = S.mode === "rush" && !S.inJackpot;
-    Screen.rushInfo(showRushInfo, S.renchan, S.rushGained, S.modeLeft);
+    const showRushInfo = (S.mode === "rush" && !S.inJackpot) || (S.inJackpot && S.rushInfoInJackpot);
+    Screen.rushInfo(showRushInfo, S.renchan, S.rushGained, S.inJackpot ? null : S.modeLeft);
+  }
+
+  function setJackpotRushInfo(show) {
+    S.rushInfoInJackpot = !!show && S.rushActive;
+    refreshRushInfo();
   }
 
   function updateModeUI() {
@@ -532,6 +538,7 @@ const Machine = (() => {
 
   async function jackpotFlow(symbols, grade, showOdd) {
     S.inJackpot = true;
+    S.rushInfoInJackpot = false;
     Screen.confirmBg(false);
     Screen.clearPose();
     const char = CHARACTERS[symbols[0]];
@@ -588,14 +595,18 @@ const Machine = (() => {
     jackpotGained = 0;
 
     // 1セット目のラウンド消化
+    setJackpotRushInfo(rushResult);
     await playSet(1, g.sets, g.rounds, symbols[0]);
+    setJackpotRushInfo(false);
 
     // ---- 前半（10R等）終了時の判定 ----
     if (grade === "double") {
       // まずRUSH当落 → ギリギリで継続(10R×2)告知 → 2セット目
       await rushJudge(true, judgeImmediate, wasRush);
       await nextBonusReveal();
+      setJackpotRushInfo(true);
       await playSet(2, g.sets, g.rounds, symbols[0]);
+      setJackpotRushInfo(false);
     } else if (rushResult) {
       // single / mini：RUSH当落判定
       await rushJudge(true, judgeImmediate, wasRush);
@@ -617,6 +628,7 @@ const Machine = (() => {
     S.mode = nextMode;
     S.modeLeft = rushResult ? SPEC.ST_COUNT : 0;
     S.inJackpot = false;
+    S.rushInfoInJackpot = false;
     updateModeUI();
     bgmForMode();
     restoreBg();
@@ -628,6 +640,7 @@ const Machine = (() => {
     S.modeLeft = 0;
     S.renchan = 0;
     S.rushActive = false;   // RUSHセッション終了
+    S.rushInfoInJackpot = false;
     updateModeUI();
     AudioMgr.se("chime", 0.35);  // 放課後のチャイム
     AudioMgr.playBgm("sad");
