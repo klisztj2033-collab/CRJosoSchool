@@ -292,7 +292,7 @@ const Screen = (() => {
   function jackpotShow(title, charKey) {
     const jl = $("jackpot-layer");
     jl.classList.remove("hidden");
-    $("jp-title").textContent = title;
+    $("jp-title").textContent = "";
     $("jp-round").textContent = "";
     $("jp-balls").textContent = "";
     // 当りキャラの確定演出用画像を大きく背景表示
@@ -303,7 +303,18 @@ const Screen = (() => {
     bg.style.animation = "";
   }
   function jackpotRound(text) { $("jp-round").textContent = text; }
-  function jackpotBalls(text) { $("jp-balls").textContent = text; }
+  function jackpotBalls(value, target) {
+    const el = $("jp-balls");
+    const digits = String(value).replace(/[^\d]/g, "");
+    const targetDigits = target == null ? "" : String(target).replace(/[^\d]/g, "");
+    if (!digits) {
+      el.innerHTML = "";
+      return;
+    }
+    el.innerHTML = targetDigits
+      ? `${digitHtml(digits, "jp-ball-digit jp-ball-num")}<span class="jp-ball-slash">/</span>${digitHtml(targetDigits, "jp-ball-digit jp-ball-den")}`
+      : digitHtml(digits, "jp-ball-digit jp-ball-num");
+  }
   function jackpotChar(charKey) {
     const bg = $("jp-charbg");
     if (bg) bg.src = bigCharImg(charKey);
@@ -312,6 +323,17 @@ const Screen = (() => {
     const jl = $("jackpot-layer");
     jl.classList.add("hidden");
     jl.classList.remove("rush-info-only");
+  }
+
+  let yakumonoTimer = null;
+  function yakumonoDrop(ms = 1100) {
+    const cab = $("cab");
+    if (!cab) return;
+    cab.classList.remove("yakumono-drop");
+    void cab.offsetWidth;
+    cab.classList.add("yakumono-drop");
+    if (yakumonoTimer) clearTimeout(yakumonoTimer);
+    yakumonoTimer = setTimeout(() => cab.classList.remove("yakumono-drop"), ms);
   }
 
   /* ---------- 演出動画（黒背景素材をscreen合成で重ねる） ---------- */
@@ -418,7 +440,7 @@ const Screen = (() => {
     miniDigits, flash, telop, reachTitle, cutin, mobYokoku, pushButton,
     modeBanner, stCount, lcdMsg, renderHolds, glow, glowFlash, fxKira,
     playVideo, stopVideo, tenpaiPose, winPose, clearPose, spinDisplay, confirmBg,
-    showTextImg, hideTextImg, rushInfo, rushSplash,
+    showTextImg, hideTextImg, rushInfo, rushSplash, yakumonoDrop,
     jackpotShow, jackpotRound, jackpotBalls, jackpotChar, jackpotHide,
     get current() { return current; },
   };

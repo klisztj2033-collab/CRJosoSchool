@@ -85,6 +85,7 @@ body {
   position: relative;
   display: block;
   width: 100%;
+  
   z-index: 2;
   pointer-events: none;   /* 奥の液晶(PUSHボタン)へクリックを通す */
   filter: drop-shadow(0 0 30px rgba(201, 168, 76, 0.2));
@@ -480,6 +481,7 @@ body {
 }
 #jackpot-layer > :not(#jp-charbg) { position: relative; z-index: 1; }
 #jp-title {
+  display: none;
   font-size: 24px;
   font-weight: 900;
   color: #ffd23f;
@@ -493,17 +495,58 @@ body {
   margin-top: 4px;
 }
 #jp-char { display: none; }  /* 大キャラ背景(#jp-charbg)に置き換え */
-#jp-balls {
-  font-size: 15px;
-  font-weight: bold;
-  color: #fff;
-  text-shadow: 0 1px 3px #000;
-  padding-bottom: 4px;
+#jackpot-layer #jp-balls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0;
+  position: absolute;
+  left: 34px;
+  right: auto;
+  bottom: 90px;
+  min-height: 42px;
+  margin-top: 0;
+  padding-bottom: 0;
 }
-#jackpot-layer.rush-info-only #jp-title,
-#jackpot-layer.rush-info-only #jp-round,
-#jackpot-layer.rush-info-only #jp-balls {
-  display: none;
+.jp-ball-digit {
+  height: 42px;
+  width: auto;
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,.75)) drop-shadow(0 0 8px rgba(255,210,63,.7));
+}
+.jp-ball-num {
+  height: 78px;
+  filter: drop-shadow(0 3px 7px rgba(0,0,0,.85)) drop-shadow(0 0 12px rgba(255,210,63,.85));
+}
+.jp-ball-den { height: 42px; opacity: .92; }
+.jp-ball-num + .jp-ball-num { margin-left: -30px; }
+.jp-ball-den + .jp-ball-den { margin-left: -15px; }
+.jp-ball-slash {
+  color: #fff2a6;
+  font-size: 46px;
+  font-weight: 900;
+  line-height: 64px;
+  margin: 0 -2px 0 2px;
+  text-shadow: 0 2px 5px #000, 0 0 8px rgba(255,210,63,.75);
+}
+
+#cab.yakumono-drop::after {
+  content: "";
+  position: absolute;
+  left: 185px;
+  top: 20px;
+  width: 350px;
+  height: 180px;
+  z-index: 44;
+  pointer-events: none;
+  background: url("../imagin/役物１.png") center top / contain no-repeat;
+  filter: drop-shadow(0 14px 18px rgba(0,0,0,.55)) drop-shadow(0 0 22px rgba(255,210,63,.9));
+  animation: yakumonoDrop .95s cubic-bezier(.18,1.2,.35,1) forwards;
+}
+@keyframes yakumonoDrop {
+  0% { transform: translateY(-230px) scale(.92); opacity: 0; }
+  55% { transform: translateY(120px) scale(1.06); opacity: 1; }
+  72% { transform: translateY(92px) scale(.98); }
+  100% { transform: translateY(112px) scale(1); opacity: 0; }
 }
 
 /* モードバナー・ST残り（中央の人物の顔を避けて下部に配置） */
@@ -541,25 +584,47 @@ body {
 /* RUSH情報パネル（下部・中央の顔を避ける） */
 #rush-info {
   position: absolute;
-  left: 0; right: 0;
-  bottom: 76px;
-  z-index: 31;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
+  inset: 0;
+  z-index: 22;
   pointer-events: none;
 }
 #rush-renchan, #rush-gain {
   display: flex;
   align-items: center;
-  gap: 3px;
 }
-#rush-renchan .rush-logo-sm { height: 30px; width: auto; filter: drop-shadow(0 1px 3px rgba(0,0,0,.7)); }
-#rush-renchan .jd-x { height: 22px; width: auto; }
+#rush-renchan {
+  position: absolute;
+  left: 8px;
+  top: 58px;
+}
+#rush-gain {
+  position: absolute;
+  right: 8px;
+  top: 58px;
+  justify-content: flex-end;
+  gap: 0;
+  max-width: 210px;
+  padding: 3px 5px;
+  background: rgba(0,0,0,.42);
+  border-radius: 5px;
+}
+#rush-renchan .rush-logo-sm {
+  height: 74px;
+  width: auto;
+  filter: drop-shadow(0 3px 8px rgba(0,0,0,.85)) drop-shadow(0 0 10px rgba(255,210,63,.7));
+}
+#rush-renchan .jd-x,
+#rush-renchan .jd,
+#rush-renchan .jd-zero { display: none; }
 /* 宝石数字（獲得玉数・連チャン数の各桁） */
 .jd { height: 30px; width: auto; filter: drop-shadow(0 1px 3px rgba(0,0,0,.6)); }
-#rush-gain .jd { height: 26px; }
+#rush-gain .jd {
+  height: 28px;
+  width: auto;
+  margin-left: -10px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.75)) drop-shadow(0 0 5px rgba(255,210,63,.6));
+}
+#rush-gain .jd:first-of-type { margin-left: 0; }
 .jd-zero {
   display: inline-block;
   height: 26px; min-width: 17px;
@@ -571,42 +636,26 @@ body {
   text-shadow: 0 0 4px rgba(255,180,40,.8);
 }
 #rush-renchan .jd-zero { height: 30px; font-size: 28px; line-height: 30px; }
-.rg-label {
-  color: #ffe9a8; font-weight: 900; font-size: 14px;
-  text-shadow: 0 1px 3px #000, 0 0 6px rgba(255,140,40,.8);
-  margin: 0 2px;
-}
-#rush-info.jackpot {
-  left: 18px;
-  right: auto;
-  bottom: 104px;
-  width: 100%;
-  align-items: flex-start;
-  gap: 4px;
-}
-#rush-info.jackpot #rush-renchan,
-#rush-info.jackpot #rush-gain {
-  margin-left: 22px;
-  gap: 3px;
-}
-#rush-info.jackpot #rush-gain .jd + .jd,
-#rush-info.jackpot #rush-gain .jd-zero + .jd,
-#rush-info.jackpot #rush-gain .jd + .jd-zero {
+#rush-gain .jd-zero {
+  height: 28px;
+  min-width: 13px;
+  font-size: 25px;
+  line-height: 28px;
   margin-left: -8px;
 }
-#rush-info.jackpot #rush-renchan .rush-logo-sm { height: 90px; }
-#rush-info.jackpot #rush-renchan .jd-x { height: 33px; }
-#rush-info.jackpot .jd { height: 45px; }
-#rush-info.jackpot #rush-gain .jd { height: 39px; }
-#rush-info.jackpot .rg-label {
-  font-size: 18px;
-  text-shadow: 0 2px 6px #000, 0 0 14px rgba(255,140,40,.95);
+#rush-gain .jd-zero:first-of-type { margin-left: 0; }
+.rg-label {
+  color: #ffe9a8; font-weight: 900; font-size: 12px;
+  text-shadow: 0 1px 3px #000, 0 0 6px rgba(255,140,40,.8);
+  margin: 0 1px;
+  white-space: nowrap;
 }
-#rush-info.jackpot .jd-zero {
-  height: 39px;
-  min-width: 26px;
-  font-size: 36px;
-  line-height: 39px;
+#rush-gain .rg-label:first-child { margin-right: 2px; }
+#rush-gain .rg-label:last-child { margin-left: 2px; }
+#rush-remain {
+  position: absolute;
+  right: 10px;
+  top: 94px;
 }
 /* RUSH突入ロゴ／×の表示（中央・大きすぎない程度） */
 #rush-splash {
@@ -669,15 +718,15 @@ body {
 #migiuchi {
   position: absolute;
   left: 890px; top: 645px;
-  background: transparent;
-  padding: 0;
+  background: #d01515;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  padding: 5px 10px;
+  border-radius: 6px;
+  box-shadow: 0 0 12px #ff4040;
   animation: pulseHot .5s infinite alternate;
   z-index: 10;
-}
-#migiuchi img {
-  width: 142px;
-  height: auto;
-  filter: drop-shadow(0 0 10px #ff4040) drop-shadow(0 2px 3px rgba(0,0,0,.75));
 }
 
 /* ---------- 操作パネル ---------- */

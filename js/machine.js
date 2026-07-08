@@ -100,16 +100,12 @@ const Machine = (() => {
   }
 
   function onDenchu() {
-    updateBalls(SPEC.DENCHU_PAY);
-    if (S.rushActive) {
-      S.rushGained += SPEC.DENCHU_PAY;
-      refreshRushInfo();
-    }
     if (S.mode !== "normal") enqueueSpin();
   }
 
   let roundCatch = 0;
   let jackpotGained = 0;
+  let jackpotTarget = 0;
   function onAttacker() {
     updateBalls(SPEC.ATTACKER_PAY);
     jackpotGained += SPEC.ATTACKER_PAY;
@@ -118,7 +114,7 @@ const Machine = (() => {
       refreshRushInfo();
     }
     roundCatch++;
-    Screen.jackpotBalls(`獲得 ${jackpotGained}発`);
+    Screen.jackpotBalls(jackpotGained, jackpotTarget);
   }
 
   /* ---------- 保留・抽選 ---------- */
@@ -275,7 +271,7 @@ const Machine = (() => {
   /* 激熱確定背景（出現＝当り確定のプレミア演出） */
   async function doConfirm(symbols) {
     const seven = symbols[0] === 6 && symbols[2] === 6;
-    AudioMgr.playBgm("rush");   // 確定の特別曲（RUSH時BGM）
+    AudioMgr.playBgm("jackpot");   // 確定演出ではRUSH時BGMを先出ししない
     AudioMgr.se("kyuin3", 0.6);
     AudioMgr.voice("atsui");
     Screen.reelsVisible(false);
@@ -364,27 +360,22 @@ const Machine = (() => {
     }
 
     if (isSPSP) {
-      // SPSP発展（生徒会長決戦 小丹 VS 伊藤輝明）
+      // SPSP発展（RUSHチャレンジ専用の小丹VS伊藤演出は使わない）
       Screen.stopVideo();
       Screen.flash("#ff4040", 500);
       AudioMgr.se("kyuin3", 0.55);
       AudioMgr.voice("atsui");
       Screen.fxKira("kiraLine1", 2000);
       Screen.glowFlash("gold", 2400);   // SPSP発展：金点灯（激アツ）
-      await Screen.reachTitle(SPSP_REACH.title, 2000, "spsp");
-      // 小丹の選挙1枚絵
-      Screen.setBg(SPSP_IMGS.kotan, false);
-      await Screen.telop(SPSP_REACH.lines[0], 1600, "story hot");
-      // VS 3D文字アニメーション
+      await Screen.reachTitle("激熱SPSP発展！！", 1800, "spsp");
+      if (sp.bg) Screen.setBg(sp.bg, false);
+      await Screen.telop(sp.lines[0] || "運命の最終局面へ突入！", 1500, "story hot");
       AudioMgr.se("kyuin3", 0.6);
       Screen.flash("#ffffff", 350);
-      Screen.playVideo("vs3d", { front: true, ms: 2400 });
-      await wait(2200);
-      // 伊藤輝明の選挙1枚絵
-      Screen.setBg(SPSP_IMGS.ito, false);
-      await Screen.telop(SPSP_REACH.lines[1], 1600, "story hot");
-      await Screen.telop(SPSP_REACH.lines[2], 1500, "story hot");
-      // PUSHボタン
+      Screen.playVideo("cutinRed", { front: true, ms: 1000, opacity: 0.72 });
+      await wait(900);
+      if (sp.chars[0]) await Screen.cutin(sp.chars[0], "", 1300, "hot");
+      await Screen.telop(sp.lines[sp.lines.length - 1] || "最後の一撃で決めろ！！", 1400, "story hot");
       const pressed = await Screen.pushButton(2800);
       if (pressed || true) {
         if (isWin) {
@@ -394,7 +385,7 @@ const Machine = (() => {
           Screen.glowFlash("red", 1800);   // 当り決着：赤点灯
           Screen.playVideo("gekiha", { front: true, ms: 2200 });  // 「撃破」動画
           Screen.flash("#ffd23f", 700);
-          await Screen.cutin(SPSP_REACH.chars[0], "決着──！！", 1600, "hot");
+          if (sp.chars[0]) await Screen.cutin(sp.chars[0], "決着──！！", 1600, "hot");
         } else {
           AudioMgr.se("fail", 0.6);
           Screen.playVideo("jikai", { front: true, ms: 2000 });   // 「次回」動画
@@ -446,8 +437,8 @@ const Machine = (() => {
   }
 
   async function runZenkaiten(symbols) {
-    // プレミア全回転（特別曲 RUSH時BGM を流す）
-    AudioMgr.playBgm("rush");
+    // プレミア全回転（RUSH時BGMはRUSH突入後まで流さない）
+    AudioMgr.playBgm("jackpot");
     await wait(1200);
     AudioMgr.se("bingo", 0.55);
     Screen.setBg(BGS.wafuUme, false);
@@ -490,8 +481,31 @@ const Machine = (() => {
   }
 
   // RUSH当落判定（10R終了時）。immediate=奇数図柄等で既に確定済みなら短くお祝いのみ
+  async function rushChallengeBattle() {
+    Screen.jackpotHide();
+    Screen.reelsVisible(false);
+    Screen.stopVideo();
+    Screen.lcdMsg(null);
+    Screen.setBg(SPSP_IMGS.kotan, false, false);
+    AudioMgr.se("pseudo", 0.55);
+    Screen.glowFlash("gold", 1800);
+    await Screen.reachTitle(SPSP_REACH.title, 1600, "spsp");
+    await Screen.telop(SPSP_REACH.lines[0], 1400, "story hot");
+    Screen.flash("#ffffff", 300);
+    Screen.playVideo("vs3d", { front: true, ms: 2200 });
+    AudioMgr.se("kyuin3", 0.45);
+    await wait(1900);
+    Screen.setBg(SPSP_IMGS.ito, false, false);
+    await Screen.telop(SPSP_REACH.lines[1], 1400, "story hot");
+    await Screen.telop(SPSP_REACH.lines[2], 1400, "story hot");
+    await Screen.pushButton(2400);
+  }
+
   async function rushJudge(willRush, immediate, wasRush) {
     if (immediate) {
+      if (!wasRush) {
+        await rushChallengeBattle();
+      }
       AudioMgr.se("fanfare", 0.6);
       AudioMgr.voice("rush");
       Screen.glowFlash("rainbow", 1800);
@@ -503,14 +517,13 @@ const Machine = (() => {
     }
     // 当落判定のタメ（ドキドキ）
     Screen.lcdMsg("RUSH当落 判定中…！", "alert");
-    AudioMgr.se("drumroll", 0.5);
-    Screen.glowFlash("gold", 2800);
-    await wait(2600);
+    await rushChallengeBattle();
     Screen.lcdMsg(null);
     if (willRush) {
       AudioMgr.se("flash", 0.6);
       AudioMgr.se("hit", 0.7);
       AudioMgr.voice("rush");
+      Screen.yakumonoDrop();
       Screen.flash("#ffd23f", 700);
       Screen.glowFlash("rainbow", 2400);
       Screen.fxKira("kiraLine2", 1800);
@@ -529,12 +542,15 @@ const Machine = (() => {
   async function nextBonusReveal() {
     Screen.lcdMsg("継続なるか…！？", "alert");
     AudioMgr.se("drumroll", 0.5);
-    await wait(2400);   // ギリギリまで引っ張る
+    Screen.glowFlash("gold", 2400);
+    await wait(2400);
     Screen.lcdMsg(null);
     AudioMgr.se("fanfare", 0.75);
     AudioMgr.se("levelup", 0.5);
     Screen.flash("#ffd23f", 800);
     Screen.glowFlash("rainbow", 2600);
+    jackpotTarget = 2 * 10 * SPEC.ROUND_CATCH * SPEC.ATTACKER_PAY;
+    Screen.jackpotBalls(jackpotGained, jackpotTarget);
     await Screen.telop("NEXT BONUS！！ 10R×2 約3000個！", 2200, "story hot");
   }
 
@@ -584,7 +600,7 @@ const Machine = (() => {
 
     AudioMgr.playBgm("jackpot", 0.4);
     // 即確定でなければ当落は伏せる（偶数図柄でも「大当り！」表記）
-    Screen.jackpotShow(immediate ? "大当り！！ 〜常総RUSH確定〜" : "大当り！", char.key);
+    Screen.jackpotShow("", char.key);
     updateModeUI(); // 右打ちランプ点灯
     $("migiuchi").classList.remove("hidden");
     await wait(1700);
@@ -593,6 +609,7 @@ const Machine = (() => {
     Screen.lcdMsg(null);
 
     jackpotGained = 0;
+    jackpotTarget = g.rounds * SPEC.ROUND_CATCH * SPEC.ATTACKER_PAY;
 
     // 1セット目のラウンド消化
     setJackpotRushInfo(rushResult);
@@ -604,6 +621,7 @@ const Machine = (() => {
       // まずRUSH当落 → ギリギリで継続(10R×2)告知 → 2セット目
       await rushJudge(true, judgeImmediate, wasRush);
       await nextBonusReveal();
+      Screen.jackpotShow("", char.key);
       setJackpotRushInfo(true);
       await playSet(2, g.sets, g.rounds, symbols[0]);
       setJackpotRushInfo(false);
@@ -617,9 +635,7 @@ const Machine = (() => {
 
     // 終了画面
     Screen.jackpotRound("");
-    Screen.jackpotBalls(rushResult
-      ? `獲得 ${jackpotGained}発  /  ${S.renchan}連チャン！`
-      : `獲得 ${jackpotGained}発`);
+    Screen.jackpotBalls(jackpotGained, jackpotTarget);
     await wait(600);
     if (!rushResult) await Screen.telop("左打ちに戻してください", 1600, "story");
     Screen.jackpotHide();
