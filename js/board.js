@@ -68,7 +68,22 @@ const Board = (() => {
   }
   const rails = [];
   function addPeg(x, y, r = 4) { pegs.push({ x, y, r, extra: true }); }
+  function addPegIfSparse(x, y, r = 3.2, minGap = 7) {
+    for (const p of pegs) {
+      const dx = x - p.x, dy = y - p.y;
+      if (dx * dx + dy * dy < minGap * minGap) return;
+    }
+    addPeg(x, y, r);
+  }
   function addRail(x1, y1, x2, y2) { rails.push({ x1, y1, x2, y2 }); }
+
+  // へそ上部の見えている釘。自動間引き・除外で弱くなった部分だけ小さめに戻す。
+  const HESO_UPPER_PEGS = [
+    [425, 933, 3.3], [449, 969, 3.2], [443, 974, 3.2],
+    [432, 993, 3.3], [441, 999, 3.2],
+    [709, 968, 3.1], [670, 994, 3.2], [652, 1004, 3.2], [650, 1035, 3.2],
+  ];
+  for (const p of HESO_UPPER_PEGS) addPegIfSparse(p[0], p[1], p[2]);
 
   // 道釘：左は見えるビーズ釘の列（MICHI_ZONE）が玉を運ぶ。
   // レールはビーズ列の中心線上に敷き、釘間のV溝を橋渡しして
