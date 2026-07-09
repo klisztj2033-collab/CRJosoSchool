@@ -49,11 +49,23 @@ const Board = (() => {
   // 役物壁との間に玉が挟まる袋小路を作るため判定から外す
   const PEG_EXCLUDE = [[425, 933], [443, 974], [449, 969], [432, 993], [441, 999],
                        [650, 1035]];  // 右・道レール面から突き出て玉を堰き止めるビーズ
+  // 左チャンネルの着地点にできる袋小路ゾーン。ここの釘は当たり判定を外し、
+  // 受けレールだけで玉を滑らかに道釘へ流す（釘はアート上に描かれたまま）
+  const POCKET_CLEAR = (x, y) => x >= 176 && x <= 250 && y >= 818 && y <= 900;
   const pegs = [];
   for (const p of PEG_DATA) {
     if (PEG_EXCLUDE.some(e => Math.abs(e[0] - p[0]) < 4 && Math.abs(e[1] - p[1]) < 4)) continue;
+    if (POCKET_CLEAR(p[0], p[1])) continue;
     if (MICHI_ZONE(p[0], p[1])) {
-      pegs.push({ x: p[0], y: p[1], r: Math.max(3.2, Math.min(p[2], 5.5)) });
+      // 道釘ゾーンも密集し過ぎると玉が釘の間に挟まるため、14px間隔で間引く。
+      // 特に左入口(x<250)は玉が落ちてくる着地点で詰まりやすいので気持ち広めに。
+      const gap = p[0] < 250 ? 15 : 13;
+      let close = false;
+      for (const q of pegs) {
+        const dx = p[0] - q.x, dy = p[1] - q.y;
+        if (dx * dx + dy * dy < gap * gap) { close = true; break; }
+      }
+      if (!close) pegs.push({ x: p[0], y: p[1], r: Math.max(3.2, Math.min(p[2], 5.5)) });
       continue;
     }
     // 右打ちルートの装飾ビーズ密集地帯は広めに間引いて通り抜けを確保
@@ -92,8 +104,10 @@ const Board = (() => {
   // ※レールはビーズ列の頭頂線に合わせる：玉が「見えている釘の列の上」を
   //   なめらかに転がる。二列ビーズの内側は玉径より狭く通れないため、
   //   入口を接続レールで塞いで上段列の上を通す
-  addRail(216, 823, 245, 876);              // 寄り釘・急斜面の列
-  addRail(245, 876, 296, 914);              // 急斜面→道釘列への接続（樋の入口を塞ぐ）
+  // 左チャンネルからの受けレール。左ガード壁ぎわ(x~172)まで延ばして
+  // 「壁と寄りレールの間の袋小路」を塞ぎ、落ちた玉を必ず道釘へ流す
+  addRail(172, 838, 248, 878);              // 左チャンネル受け（緩斜面・袋小路を封鎖）
+  addRail(248, 878, 296, 914);              // 道釘列への接続
   addRail(296, 914, 430, 992);              // 道釘・上段列の頭頂線（メインルート）
   addRail(312, 1000, 384, 1008);            // 道釘・下段平坦部（跳ねた玉の受け）
   addRail(384, 1008, 402, 1014);            // 道釘・下りへの継ぎ目
@@ -256,9 +270,9 @@ const Board = (() => {
       // （キックは回数ごとに強化し、それでも抜けない玉はこぼれ玉として排出）
       if (b.px === undefined) { b.px = b.x; b.py = b.y; b.still = 0; b.kicks = 0; }
       b.still++;
-      if (b.still >= 80) {
+      if (b.still >= 45) {
         const moved = Math.hypot(b.x - b.px, b.y - b.py);
-        if (moved < 8) {
+        if (moved < 6) {
           b.kicks++;
           kickCount++;
           if (kickPosArr) kickPosArr.push([Math.round(b.x), Math.round(b.y)]);
@@ -266,8 +280,15 @@ const Board = (() => {
             // どうしても抜けない玉は釘をすり抜けて落下（ゴースト化）
             b.ghost = true;
           }
-          b.vx += (Math.random() - 0.5) * (2.6 + b.kicks * 0.6);
-          b.vy -= 0.8 + Math.random() * 0.8 + b.kicks * 0.3;
+          // 左チャンネル／道釘入口(左側)で詰まった玉は、ランダムに揺するより
+          // 正しい進行方向（右下＝道釘ルート）へ寄せた方が一発で抜けやすい
+          if (b.x < 300 && b.y < 1010) {
+            b.vx += 1.3 + Math.random() * 0.9;   // 右へ押し出す
+            b.vy += 0.5 + Math.random() * 0.6;   // 下へ
+          } else {
+            b.vx += (Math.random() - 0.5) * (2.6 + b.kicks * 0.6);
+            b.vy -= 0.8 + Math.random() * 0.8 + b.kicks * 0.3;
+          }
         } else {
           b.kicks = 0;
         }
@@ -276,7 +297,7 @@ const Board = (() => {
 
       // ---- 入賞判定 ----
       // ヘソ（始動口）
-      if (b.vy > 0 && Math.abs(b.x - HESO.x) < HESO.r - 5 && Math.abs(b.y - HESO.y) < 16) {
+      if (b.vy > 0 && Math.abs(b.x - HESO.x) < HESO.r - 8 && Math.abs(b.y - HESO.y) < 16) {
         b.dead = true;
         handlers.onHeso && handlers.onHeso();
         continue;
