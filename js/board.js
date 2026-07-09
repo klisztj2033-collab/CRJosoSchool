@@ -75,7 +75,7 @@ const Board = (() => {
     }
     addPeg(x, y, r);
   }
-  function addRail(x1, y1, x2, y2) { rails.push({ x1, y1, x2, y2 }); }
+  function addRail(x1, y1, x2, y2, r = BALL_R) { rails.push({ x1, y1, x2, y2, r }); }
 
   // へそ上部の見えている釘。自動間引き・除外で弱くなった部分だけ小さめに戻す。
   const HESO_UPPER_PEGS = [
@@ -101,13 +101,23 @@ const Board = (() => {
   addRail(470, 1046, HESO.x - 12, 1069);    // 左・ヘソ前レール（手前にこぼしギャップ）
   // Left acrylic guard: prevents balls from slipping through the clear decorative chute.
   const LEFT_CLEAR_GUARD = [
-    [132, 462, 124, 620],
-    [124, 620, 126, 760],
-    [126, 760, 146, 880],
-    [146, 880, 190, 990],
-    [190, 990, 266, 1090],
+    [112, 455, 104, 620, 18],
+    [104, 620, 108, 760, 18],
+    [108, 760, 132, 890, 18],
+    [132, 890, 178, 1000, 18],
+    [178, 1000, 258, 1096, 18],
+    [146, 462, 140, 620, 16],
+    [140, 620, 144, 760, 16],
+    [144, 760, 170, 880, 16],
+    [170, 880, 216, 990, 16],
+    [216, 990, 294, 1088, 16],
+    [98, 515, 164, 515, 12],
+    [96, 650, 158, 650, 12],
+    [106, 790, 176, 790, 12],
+    [132, 930, 220, 930, 12],
+    [206, 1078, 298, 1078, 12],
   ];
-  for (const s of LEFT_CLEAR_GUARD) addRail(s[0], s[1], s[2], s[3]);
+  for (const s of LEFT_CLEAR_GUARD) addRail(s[0], s[1], s[2], s[3], s[4]);
   addRail(916, 985, 696, 1018);             // 右・寄りレール
   addRail(696, 1018, 641, 1048);            // 右・道レール（終端で玉が止まらないよう傾斜強め）
   addRail(604, 1060, HESO.x + 12, 1069);    // 右・ヘソ前レール（手前にギャップ）
@@ -195,11 +205,12 @@ const Board = (() => {
         const cx = rl.x1 + t * dx, cy = rl.y1 + t * dy;
         const ddx = b.x - cx, ddy = b.y - cy;
         const d2 = ddx * ddx + ddy * ddy;
-        if (d2 < BALL_R * BALL_R && d2 > 0.0001) {
+        const wallR = rl.r || BALL_R;
+        if (d2 < wallR * wallR && d2 > 0.0001) {
           const d = Math.sqrt(d2);
           const nx = ddx / d, ny = ddy / d;
-          b.x = cx + nx * BALL_R;
-          b.y = cy + ny * BALL_R;
+          b.x = cx + nx * wallR;
+          b.y = cy + ny * wallR;
           // 法線成分のみ減衰、接線成分（転がり）はほぼ保存
           const dot = b.vx * nx + b.vy * ny;
           if (dot < 0) {
