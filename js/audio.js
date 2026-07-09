@@ -52,7 +52,6 @@ const AudioMgr = (() => {
   let currentBgmSource = null;
   let currentBgmGain = null;
   const seCache = {};
-  const activeSe = new Set();
   let audioCtx = null;
   const bufferCache = {};
 
@@ -72,41 +71,24 @@ const AudioMgr = (() => {
   }
 
   function warmSeSprites() {
-    if (!seCache._hanranPreload) {
-      seCache._hanranPreload = new Audio(HANRAN_SE);
-      seCache._hanranPreload.preload = "auto";
-      seCache._hanranPreload.load();
-    }
+    // SE集を一度だけデコードしてWeb Audioバッファに載せる
+    loadBuffer(HANRAN_SE).catch(() => {});
   }
 
+  // SEはデコード済みバッファから切り出して再生する。
+  // （SEごとに<audio>要素を生成するとブラウザの同時メディア数制限に
+  //   達したときにループ中のBGM要素が止められることがある）
   function playClip(def, volume) {
-    const a = new Audio(`${def.src}#t=${def.start},${def.end}`);
-    a.preload = "auto";
-    a.volume = volume;
-    const durationMs = Math.max(10, (def.end - def.start) * 1000);
-    let started = false;
-    const cleanup = () => activeSe.delete(a);
-    const start = () => {
-      if (started) return;
-      started = true;
-      activeSe.add(a);
-      try { a.currentTime = def.start; } catch (e) {}
-      a.play().then(() => {
-        setTimeout(() => {
-          a.pause();
-          try { a.currentTime = 0; } catch (e) {}
-          cleanup();
-        }, durationMs);
-      }).catch(cleanup);
-    };
-    a.addEventListener("ended", cleanup, { once: true });
-    a.addEventListener("error", cleanup, { once: true });
-    if (a.readyState >= 1) start();
-    else {
-      a.addEventListener("loadedmetadata", start, { once: true });
-      a.load();
-      setTimeout(start, 160);
-    }
+    const ctx = getAudioCtx();
+    loadBuffer(def.src).then(buf => {
+      const node = ctx.createBufferSource();
+      node.buffer = buf;
+      const gain = ctx.createGain();
+      gain.gain.value = volume;
+      node.connect(gain).connect(ctx.destination);
+      node.onended = () => { try { node.disconnect(); gain.disconnect(); } catch (e) {} };
+      node.start(0, def.start, Math.max(0.01, def.end - def.start));
+    }).catch(() => {});
   }
 
   function playBgm(key, volume = 0.35) {
@@ -130,7 +112,9 @@ const AudioMgr = (() => {
     } else {
       a.volume = volume;
     }
-    a.play().catch(() => {});
+    // 再生に失敗したらキーを捨て、次のplayBgm呼び出しで再試行できるようにする
+    // （キーが残ると同キー早期returnでBGMが止まったままになる）
+    a.play().catch(() => { if (currentBgm === a) { currentBgm = null; currentBgmKey = null; } });
     currentBgm = a;
     currentBgmKey = key;
   }
@@ -164,7 +148,9 @@ const AudioMgr = (() => {
   function toggle() {
     enabled = !enabled;
     if (!enabled) {
-      if (currentBgm) { currentBgm.pause(); currentBgm = null; }
+      const key = currentBgmKey;
+      stopBgm();
+      currentBgmKey = key;   // 再開用にキーだけ保持
     } else if (currentBgmKey) {
       const key = currentBgmKey;
       currentBgmKey = null;

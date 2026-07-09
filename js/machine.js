@@ -141,6 +141,8 @@ const Machine = (() => {
     }
     const holdColor = pickHoldColor(isWin, pattern);
     if (holdColor >= 3) AudioMgr.se("kira2", 0.5);  // 赤保留以上で保留変化音
+    // 金・虹保留は告知音で「当たるかも」を煽る（RUSH中はBGMを活かして省略）
+    if (S.mode === "normal" && holdColor >= 4) AudioMgr.se("kyuin3", 0.6);
     if (holdColor === 5) Screen.glowFlash("rainbow", 1400);      // 虹保留：筐体虹点灯
     else if (holdColor >= 4) Screen.glowFlash("gold", 1000);     // 金保留：筐体金点灯
     S.holdQueue.push({ isWin, grade, pattern, holdColor, mob, showOdd });
@@ -262,7 +264,8 @@ const Machine = (() => {
 
   /* 7図柄テンパイの即時確定カット */
   async function sevenTenpaiCue() {
-    AudioMgr.se("kyuin3", 0.6);
+    // RUSH中はRUSH時BGMに告知音を被せない
+    if (S.mode === "normal") AudioMgr.se("kyuin3", 0.6);
     Screen.glowFlash("rainbow", 2400);
     Screen.flash("#fff", 300);
     await Screen.reachTitle("７図柄テンパイ！！", 1300, "spsp");
@@ -271,8 +274,11 @@ const Machine = (() => {
   /* 激熱確定背景（出現＝当り確定のプレミア演出） */
   async function doConfirm(symbols) {
     const seven = symbols[0] === 6 && symbols[2] === 6;
-    AudioMgr.playBgm("jackpot");   // 確定演出ではRUSH時BGMを先出ししない
-    AudioMgr.se("kyuin3", 0.6);
+    // RUSH中はRUSH時BGMを流し続ける（BGM切替も告知音も被せない）
+    if (S.mode === "normal") {
+      AudioMgr.playBgm("jackpot");   // 確定演出ではRUSH時BGMを先出ししない
+      AudioMgr.se("kyuin3", 0.6);
+    }
     AudioMgr.voice("atsui");
     Screen.reelsVisible(false);
     Screen.confirmBg(true);
@@ -324,9 +330,9 @@ const Machine = (() => {
     await wait(1000);
     if (seven) await sevenTenpaiCue();
 
-    // SP発展
+    // SP発展（RUSH中はRUSH時BGMを維持したまま発展させる）
     AudioMgr.se("pseudo", 0.5);
-    AudioMgr.playBgm("reach");
+    if (S.mode === "normal") AudioMgr.playBgm("reach");
     Screen.reelsVisible(false);
     Screen.miniDigits(true, `${CHARACTERS[symbols[0]].num} ● ${CHARACTERS[symbols[2]].num}`);
     // まず1枚絵を明るくクリア表示（cover・余白なし）。panなら左端(石川)から
@@ -363,14 +369,14 @@ const Machine = (() => {
       // SPSP発展（RUSHチャレンジ専用の小丹VS伊藤演出は使わない）
       Screen.stopVideo();
       Screen.flash("#ff4040", 500);
-      AudioMgr.se("kyuin3", 0.55);
+      if (S.mode === "normal") AudioMgr.se("kyuin3", 0.55);  // RUSH中は告知音を省略
       AudioMgr.voice("atsui");
       Screen.fxKira("kiraLine1", 2000);
       Screen.glowFlash("gold", 2400);   // SPSP発展：金点灯（激アツ）
       await Screen.reachTitle("激熱SPSP発展！！", 1800, "spsp");
       if (sp.bg) Screen.setBg(sp.bg, false);
       await Screen.telop(sp.lines[0] || "運命の最終局面へ突入！", 1500, "story hot");
-      AudioMgr.se("kyuin3", 0.6);
+      if (S.mode === "normal") AudioMgr.se("kyuin3", 0.6);  // RUSH中は告知音を省略
       Screen.flash("#ffffff", 350);
       Screen.playVideo("cutinRed", { front: true, ms: 1000, opacity: 0.72 });
       await wait(900);
@@ -437,8 +443,8 @@ const Machine = (() => {
   }
 
   async function runZenkaiten(symbols) {
-    // プレミア全回転（RUSH時BGMはRUSH突入後まで流さない）
-    AudioMgr.playBgm("jackpot");
+    // プレミア全回転（通常時のみjackpot BGMを先出し。RUSH中はRUSH時BGMを維持）
+    if (S.mode === "normal") AudioMgr.playBgm("jackpot");
     await wait(1200);
     AudioMgr.se("bingo", 0.55);
     Screen.setBg(BGS.wafuUme, false);
