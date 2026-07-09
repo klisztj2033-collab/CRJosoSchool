@@ -14,7 +14,7 @@ const Board = (() => {
 
   // 液晶の透過穴は輪郭線分（HOLE_EDGE）で判定し、玉は境界線まで動ける
   // 中央役物（中エンブレムの盾。玉は通れない。下端はヘソへの通路を確保）
-  const YAKU = { x: 452, y: 798, w: 192, h: 222 };
+  const YAKU = { x: 452, y: 798, w: 192, h: 126 };
   const SOLIDS = [YAKU];
 
   // 入賞口
@@ -40,13 +40,29 @@ const Board = (() => {
 
   /* ---------- 釘・レール ---------- */
   // 筐体アートから検出した釘（当たり判定のみ。描画はアートに任せる）
-  // 玉が通れない密集クラスタは間引く（玉径が通れる間隔を確保）
+  // ほぼ重なる検出点だけ間引く。近接ペアは実機同様「通れない釘」として残し、
+  // 見えている釘を玉がすり抜ける「あいまいな当たり判定」を防ぐ
+  // 左下の道釘・寄り釘ゾーン：ヘソへ玉を運ぶ見えるビーズ釘の列。
+  // ここは一切間引かず最低半径も底上げして、列の上を確実に転がす
+  const MICHI_ZONE = (x, y) => x >= 150 && x <= 470 && y >= 820 && y <= 1090;
+  // 釘ではない装飾の誤検出（役物縁のキラ・盾の縁と重なるビーズ）。
+  // 役物壁との間に玉が挟まる袋小路を作るため判定から外す
+  const PEG_EXCLUDE = [[425, 933], [443, 974], [449, 969], [432, 993], [441, 999],
+                       [650, 1035]];  // 右・道レール面から突き出て玉を堰き止めるビーズ
   const pegs = [];
   for (const p of PEG_DATA) {
+    if (PEG_EXCLUDE.some(e => Math.abs(e[0] - p[0]) < 4 && Math.abs(e[1] - p[1]) < 4)) continue;
+    if (MICHI_ZONE(p[0], p[1])) {
+      pegs.push({ x: p[0], y: p[1], r: Math.max(3.2, Math.min(p[2], 5.5)) });
+      continue;
+    }
+    // 右打ちルートの装飾ビーズ密集地帯は広めに間引いて通り抜けを確保
+    // （17pxだと玉径より狭い壁ができて停滞する）
+    const dd = (p[0] >= 845 && p[0] <= 1015 && p[1] >= 810 && p[1] <= 930) ? 25 : 17;
     let tooClose = false;
     for (const q of pegs) {
       const dx = p[0] - q.x, dy = p[1] - q.y;
-      if (dx * dx + dy * dy < 25 * 25) { tooClose = true; break; }
+      if (dx * dx + dy * dy < dd * dd) { tooClose = true; break; }
     }
     if (!tooClose) pegs.push({ x: p[0], y: p[1], r: Math.min(p[2], 5.5) });
   }
@@ -54,19 +70,36 @@ const Board = (() => {
   function addPeg(x, y, r = 4) { pegs.push({ x, y, r, extra: true }); }
   function addRail(x1, y1, x2, y2) { rails.push({ x1, y1, x2, y2 }); }
 
-  // 寄り釘・道釘：左右のフィールドから下中央のヘソへ玉を運ぶレール。
-  // 途中の「こぼしギャップ」から落ちた玉はアウト（入賞率の調整弁）
-  addRail(85, 880, 400, 1018);              // 左・寄りレール（壁際から下カーブ沿い）
-  addRail(400, 1018, 455, 1040);            // 左・道レール
-  addRail(493, 1060, HESO.x - 12, 1069);    // 左・ヘソ前レール（手前にこぼしギャップ）
+  // 道釘：左は見えるビーズ釘の列（MICHI_ZONE）が玉を運ぶ。
+  // レールはビーズ列の中心線上に敷き、釘間のV溝を橋渡しして
+  // なめらかに転がす（釘の無い空間には判定を置かない）
+  // ※レールはビーズ列の頭頂線に合わせる：玉が「見えている釘の列の上」を
+  //   なめらかに転がる。二列ビーズの内側は玉径より狭く通れないため、
+  //   入口を接続レールで塞いで上段列の上を通す
+  addRail(216, 823, 245, 876);              // 寄り釘・急斜面の列
+  addRail(245, 876, 296, 914);              // 急斜面→道釘列への接続（樋の入口を塞ぐ）
+  addRail(296, 914, 430, 992);              // 道釘・上段列の頭頂線（メインルート）
+  addRail(312, 1000, 384, 1008);            // 道釘・下段平坦部（跳ねた玉の受け）
+  addRail(384, 1008, 402, 1014);            // 道釘・下りへの継ぎ目
+  addRail(402, 1014, 444, 1045);            // 道釘・下り部の列
+  addRail(470, 1046, HESO.x - 12, 1069);    // 左・ヘソ前レール（手前にこぼしギャップ）
   addRail(916, 985, 696, 1018);             // 右・寄りレール
-  addRail(696, 1018, 641, 1040);            // 右・道レール
-  addRail(603, 1060, HESO.x + 12, 1069);    // 右・ヘソ前レール（手前にギャップ）
+  addRail(696, 1018, 641, 1048);            // 右・道レール（終端で玉が止まらないよう傾斜強め）
+  addRail(604, 1060, HESO.x + 12, 1069);    // 右・ヘソ前レール（手前にギャップ）
   // ※ヘソへは道レール経由でのみ到達（真上は役物が塞ぐ）ため命釘は無し。
   //   入賞率はこぼしギャップの幅で調整する。
 
   // 液晶透過穴の輪郭（玉は境界線まで動き、縁に沿って転がる）
-  for (const s of HOLE_EDGE) addRail(s[0], s[1], s[2], s[3]);
+  // へそ上部の釘列へ入る下側だけはアート上の飾りなので判定を外す。
+  function isHesoApproachEdge(s) {
+    const minX = Math.min(s[0], s[2]), maxX = Math.max(s[0], s[2]);
+    const minY = Math.min(s[1], s[3]);
+    return minY >= 900 && maxX >= 410 && minX <= 665;
+  }
+  for (const s of HOLE_EDGE) {
+    if (isHesoApproachEdge(s)) continue;
+    addRail(s[0], s[1], s[2], s[3]);
+  }
 
   /* ---------- 発射 ---------- */
   // strength: 0-100（75以上で右打ちルート）
@@ -181,6 +214,8 @@ const Board = (() => {
         const moved = Math.hypot(b.x - b.px, b.y - b.py);
         if (moved < 8) {
           b.kicks++;
+          kickCount++;
+          if (kickPosArr) kickPosArr.push([Math.round(b.x), Math.round(b.y)]);
           if (b.kicks > 5) {
             // どうしても抜けない玉は釘をすり抜けて落下（ゴースト化）
             b.ghost = true;
@@ -330,8 +365,12 @@ const Board = (() => {
 
   /* ---------- 釘調整用ヘッドレスシミュレーション ---------- */
   let traceArr = null;
+  let kickPosArr = null;
+  let kickCount = 0;   // アンチスタックのキック回数（停滞の指標）
   function simulate(count, strength, opts = {}) {
     traceArr = opts.trace ? [] : null;
+    kickPosArr = opts.trace ? [] : null;
+    kickCount = 0;
     const savedBalls = balls;
     const savedHandlers = { ...handlers };
     const savedDenchu = denchuOpen, savedAttacker = attackerOpen;
@@ -350,8 +389,10 @@ const Board = (() => {
     let guard = 60 * 120;
     while (balls.length > 0 && guard-- > 0) step();
     const res = { count, heso, denchu, att, out, stuck: balls.length,
+                  kicks: kickCount,
                   hesoRate: +(heso / count * 100).toFixed(1) };
     if (traceArr) { res.trace = traceArr; traceArr = null; }
+    if (kickPosArr) { res.kickPos = kickPosArr; kickPosArr = null; }
     balls = savedBalls;
     Object.assign(handlers, savedHandlers);
     denchuOpen = savedDenchu;
