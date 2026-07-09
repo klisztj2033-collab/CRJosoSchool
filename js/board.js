@@ -101,23 +101,36 @@ const Board = (() => {
   addRail(470, 1046, HESO.x - 12, 1069);    // 左・ヘソ前レール（手前にこぼしギャップ）
   // Left acrylic guard: prevents balls from slipping through the clear decorative chute.
   const LEFT_CLEAR_GUARD = [
-    [112, 455, 104, 620, 18],
-    [104, 620, 108, 760, 18],
-    [108, 760, 132, 890, 18],
-    [132, 890, 178, 1000, 18],
-    [178, 1000, 258, 1096, 18],
-    [146, 462, 140, 620, 16],
-    [140, 620, 144, 760, 16],
-    [144, 760, 170, 880, 16],
-    [170, 880, 216, 990, 16],
-    [216, 990, 294, 1088, 16],
-    [98, 515, 164, 515, 12],
-    [96, 650, 158, 650, 12],
-    [106, 790, 176, 790, 12],
-    [132, 930, 220, 930, 12],
-    [206, 1078, 298, 1078, 12],
+    [146, 455, 140, 620, 24],
+    [140, 620, 148, 760, 24],
+    [148, 760, 178, 890, 24],
+    [178, 890, 228, 1000, 24],
+    [228, 1000, 306, 1096, 24],
   ];
   for (const s of LEFT_CLEAR_GUARD) addRail(s[0], s[1], s[2], s[3], s[4]);
+
+  function leftGuardXAt(y) {
+    const path = [[146, 455], [140, 620], [148, 760], [178, 890], [228, 1000], [306, 1096]];
+    if (y <= path[0][1]) return path[0][0];
+    for (let i = 0; i < path.length - 1; i++) {
+      const a = path[i], c = path[i + 1];
+      if (y <= c[1]) {
+        const t = (y - a[1]) / (c[1] - a[1]);
+        return a[0] + (c[0] - a[0]) * t;
+      }
+    }
+    return path[path.length - 1][0];
+  }
+
+  function drainLeftClearPocket(b) {
+    if (b.y < 455 || b.y > 1096) return;
+    const gx = leftGuardXAt(b.y);
+    if (b.x < gx + BALL_R) {
+      b.x = gx + BALL_R + 2;
+      b.vx = Math.max(b.vx, 1.15);
+      b.vy = Math.max(b.vy, 0.7);
+    }
+  }
   addRail(916, 985, 696, 1018);             // 右・寄りレール
   addRail(696, 1018, 641, 1048);            // 右・道レール（終端で玉が止まらないよう傾斜強め）
   addRail(604, 1060, HESO.x + 12, 1069);    // 右・ヘソ前レール（手前にギャップ）
@@ -192,6 +205,8 @@ const Board = (() => {
           }
         }
       }
+
+      drainLeftClearPocket(b);
 
       // 液晶穴・役物との衝突
       for (const s of SOLIDS) collideRect(b, s);
