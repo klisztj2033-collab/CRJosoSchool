@@ -99,6 +99,15 @@ const Board = (() => {
   addRail(384, 1008, 402, 1014);            // 道釘・下りへの継ぎ目
   addRail(402, 1014, 444, 1045);            // 道釘・下り部の列
   addRail(470, 1046, HESO.x - 12, 1069);    // 左・ヘソ前レール（手前にこぼしギャップ）
+  // Left acrylic guard: prevents balls from slipping through the clear decorative chute.
+  const LEFT_CLEAR_GUARD = [
+    [132, 462, 124, 620],
+    [124, 620, 126, 760],
+    [126, 760, 146, 880],
+    [146, 880, 190, 990],
+    [190, 990, 266, 1090],
+  ];
+  for (const s of LEFT_CLEAR_GUARD) addRail(s[0], s[1], s[2], s[3]);
   addRail(916, 985, 696, 1018);             // 右・寄りレール
   addRail(696, 1018, 641, 1048);            // 右・道レール（終端で玉が止まらないよう傾斜強め）
   addRail(604, 1060, HESO.x + 12, 1069);    // 右・ヘソ前レール（手前にギャップ）
