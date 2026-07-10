@@ -17,28 +17,28 @@ const AudioMgr = (() => {
   };
   const HANRAN_SE = "assets/se/氾濫.mp3";
   const clip = (start, end) => ({ src: HANRAN_SE, start, end });
+  // SE: Adobe Firefly生成の個別WAV。確定・告知音（kyuin3）だけは氾濫.mp3の切り出しを残す
   const SE_PATHS = {
-    // 氾濫.mp3をパチンコSE集として秒数指定で切り分ける
-    stop:    clip(1.92, 2.18),
-    hold:    clip(2.48, 2.95),       // 入賞
-    reach:   clip(0.08, 1.48),       // リーチ・強予告
-    pseudo:  clip(4.03, 5.18),       // 擬似連・SP発展
-    kyuin3:  clip(5.45, 6.28),       // 確定音
-    kira:    clip(8.03, 9.35),       // キラ演出
-    kira2:   clip(9.72, 10.86),      // 保留変化
-    flash:   clip(16.82, 17.56),     // フラッシュ
-    levelup: clip(19.50, 20.25),     // 格上げ
-    chime:   clip(32.10, 35.60),     // モード終了
-    drumroll: clip(21.92, 25.80),    // 判定前の溜め
-    button:  clip(19.42, 19.70),     // PUSH
-    bingo:   clip(25.95, 27.30),     // 抽選結果
-    // 常総学院シミュレーターより
-    hit:     clip(27.04, 28.58),
-    fanfare: clip(0.00, 1.78),
-    fail:    clip(18.65, 19.34),
-    lose:    clip(30.02, 31.52),
-    group:   clip(12.05, 16.75),
-    escape:  clip(34.05, 35.60),
+    stop:    "assets/se/リール停止音（stop）.wav",
+    hold:    "assets/se/入賞音（hold） — チャリン系.wav",
+    reach:   "assets/se/リーチ成立（reach）.wav",
+    pseudo:  "assets/se/擬似連・発展（pseudo）.wav",
+    kyuin3:  clip(5.45, 6.28),       // 確定・告知音（氾濫.mp3から）
+    kira:    "assets/se/キラ演出（kira）.wav",
+    kira2:   "assets/se/保留変化（kira2）.wav",
+    flash:   "assets/se/フラッシュ（flash）.wav",
+    levelup: "assets/se/格上げ（levelup）.wav",
+    chime:   "assets/se/チャイム（chime） — RUSH終了用.wav",
+    drumroll: "assets/se/ドラムロール（drumroll）.wav",
+    button:  "assets/se/PUSHボタン（button）.wav",
+    bingo:   "assets/se/抽選結果（bingo）.wav",
+    hit:     "assets/se/大当り（hit）.wav",
+    fanfare: "assets/se/ファンファーレ（fanfare）.wav",
+    fail:    "assets/se/失敗・転落（fail）.wav",
+    lose:    "assets/se/ハズレ（lose）.wav",
+    group:   "assets/se/群予告（group）.wav",
+    tsuishi: "assets/se/追試（擬似連スプラッシュ用に新規）.wav",
+    wara:    "assets/se/先生バトル敗北（わら！用に新規）.wav",
   };
   // キャラボイス: VOICEVOX（ずんだもん）
   const VOICE_PATHS = {
@@ -71,8 +71,11 @@ const AudioMgr = (() => {
   }
 
   function warmSeSprites() {
-    // SE集を一度だけデコードしてWeb Audioバッファに載せる
+    // 全SEを一度だけデコードしてWeb Audioバッファに載せる（初回再生の遅延防止）
     loadBuffer(HANRAN_SE).catch(() => {});
+    for (const def of Object.values(SE_PATHS)) {
+      if (typeof def === "string") loadBuffer(def).catch(() => {});
+    }
   }
 
   // SEはデコード済みバッファから切り出して再生する。
@@ -138,24 +141,51 @@ const AudioMgr = (() => {
     currentBgmKey = null;
   }
 
+  // 歌詞など、BGMに同期する演出向けの再生位置。
+  // BGMが切り替わっている間は null を返し、誤った曲へ同期させない。
+  function bgmTime(key) {
+    if (!currentBgm || (key && currentBgmKey !== key)) return null;
+    return Number.isFinite(currentBgm.currentTime) ? currentBgm.currentTime : null;
+  }
+
   /* ユーザー操作のタイミングでAudioContextを確実に起こす（SE無音対策） */
   function unlock() {
     try { getAudioCtx(); } catch (e) {}
+  }
+
+  /* 個別ファイルSE：Web Audioバッファで再生（<audio>フォールバック付き） */
+  function playFileElement(src, volume) {
+    if (!seCache[src]) { seCache[src] = new Audio(src); seCache[src].preload = "auto"; }
+    const a = seCache[src].cloneNode();
+    a.volume = volume;
+    a.play().catch(() => {});
+  }
+
+  function playFile(src, volume) {
+    if (clipFallback) { playFileElement(src, volume); return; }
+    const ctx = getAudioCtx();
+    if (ctx.state !== "running") { playFileElement(src, volume); return; }
+    loadBuffer(src).then(buf => {
+      const node = ctx.createBufferSource();
+      node.buffer = buf;
+      const gain = ctx.createGain();
+      gain.gain.value = volume;
+      node.connect(gain).connect(ctx.destination);
+      node.onended = () => { try { node.disconnect(); gain.disconnect(); } catch (e) {} };
+      node.start(0);
+    }).catch(() => {
+      console.warn("SE: Web Audio再生に失敗したため<audio>フォールバックへ切替");
+      clipFallback = true;
+      playFileElement(src, volume);
+    });
   }
 
   function se(key, volume = 0.5) {
     if (!enabled) return;
     const def = SE_PATHS[key];
     if (!def) return;
-    if (typeof def === "object") {
-      playClip(def, volume);
-      return;
-    }
-    // 同時再生できるよう都度クローン
-    if (!seCache[key]) { seCache[key] = new Audio(def); seCache[key].preload = "auto"; }
-    const a = seCache[key].cloneNode();
-    a.volume = volume;
-    a.play().catch(() => {});
+    if (typeof def === "object") playClip(def, volume);
+    else playFile(def, volume);
   }
 
   function voice(key, volume = 0.75) {
@@ -176,5 +206,5 @@ const AudioMgr = (() => {
     return enabled;
   }
 
-  return { playBgm, stopBgm, se, voice, toggle, unlock, get enabled() { return enabled; } };
+  return { playBgm, stopBgm, bgmTime, se, voice, toggle, unlock, get enabled() { return enabled; } };
 })();

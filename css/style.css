@@ -215,6 +215,18 @@ body {
   z-index: 5;
   transition: opacity .3s;
 }
+#reels.event-mode {
+  top: auto;
+  bottom: 4px;
+  gap: 2px;
+  z-index: 27;
+  padding: 2px 5px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+#reels.event-mode .reel { width: 72px; height: 72px; }
+#reels.event-mode .reel:nth-child(2) { opacity: .72; }
 .reel {
   width: 118px; height: 118px;
   background: transparent;   /* 図柄画像そのものを表示（枠・白背景なし） */

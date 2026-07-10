@@ -94,6 +94,16 @@ const Screen = (() => {
 
   function reelsVisible(v) { $("reels").style.opacity = v ? "1" : "0"; }
 
+  // SP中もテンパイ図柄を見失わないよう、液晶下部へ縮小して残す。
+  // 戻り値は切替前の状態（確定演出の一時切替で使用）。
+  function reelsEventMode(on) {
+    const el = $("reels");
+    const wasOn = el.classList.contains("event-mode");
+    el.classList.toggle("event-mode", on);
+    el.style.opacity = "1";
+    return wasOn;
+  }
+
   /* テンパイ／当り確定の決めポーズ */
   function tenpaiPose(on) {
     reels[0].classList.toggle("tenpai", on);
@@ -283,18 +293,26 @@ const Screen = (() => {
 
   /* 歌詞テロップ（RUSH楽曲用のカラオケ風ティッカー） */
   let lyricsTimer = null;
-  let lyricsIdx = 0;
-  function lyricsStart(lines, intervalMs = 4200) {
+  let lyricsIdx = -1;
+  function lyricsStart(cues, timeSource) {
     const el = $("lyrics");
-    if (!el || !lines || !lines.length) return;
+    if (!el || !cues || !cues.length) return;
     lyricsStop();
-    lyricsIdx = 0;
-    el.textContent = lines[0];
-    el.classList.remove("hidden");
-    lyricsTimer = setInterval(() => {
-      lyricsIdx = (lyricsIdx + 1) % lines.length;
-      el.textContent = lines[lyricsIdx];
-    }, intervalMs);
+    lyricsIdx = -1;
+    const update = () => {
+      const t = typeof timeSource === "function" ? timeSource() : null;
+      if (t == null) return;
+      let next = -1;
+      for (let i = 0; i < cues.length && cues[i].at <= t; i++) next = i;
+      if (next === lyricsIdx) return;
+      lyricsIdx = next;
+      const text = next >= 0 ? cues[next].text : "";
+      el.textContent = text;
+      el.classList.toggle("hidden", !text);
+    };
+    update();
+    // Audio要素の現在時刻を基準にするため、停止・再開や処理落ちでもずれない。
+    lyricsTimer = setInterval(update, 100);
   }
   function lyricsStop() {
     const el = $("lyrics");
@@ -473,7 +491,7 @@ const Screen = (() => {
   }
 
   return {
-    wait, setBg, setBgPos, panBg, setSymbol, startReel, stopReel, startAll, reelsVisible,
+    wait, setBg, setBgPos, panBg, setSymbol, startReel, stopReel, startAll, reelsVisible, reelsEventMode,
     miniDigits, flash, telop, reachTitle, cutin, mobYokoku, pushButton,
     modeBanner, stCount, lcdMsg, renderHolds, glow, glowFlash, fxKira,
     stagePlate, lyricsStart, lyricsStop,

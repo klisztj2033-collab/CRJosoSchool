@@ -75,7 +75,9 @@ const Machine = (() => {
   function updateModeUI() {
     const migiuchi = S.mode !== "normal" || S.inJackpot;
     $("migiuchi").classList.toggle("hidden", !migiuchi);
-    Board.denchuOpen = S.mode !== "normal";
+    // 大当り中まで電チューを開くと、2回目以降の右打ち玉が
+    // アタッカーへ届く前に電チューへ吸われるため、ラウンド中は閉じる。
+    Board.denchuOpen = S.mode !== "normal" && !S.inJackpot;
 
     if (S.mode === "rush") {
       Screen.modeBanner(null);
@@ -96,7 +98,7 @@ const Machine = (() => {
     if (S.mode === "rush") {
       // RUSH中は常に歌もの「常総の帰り道」＋歌詞テロップ
       AudioMgr.playBgm("rush", 0.6);
-      Screen.lyricsStart(KAERIMICHI_LYRICS);
+      Screen.lyricsStart(KAERIMICHI_LYRICS, () => AudioMgr.bgmTime("rush"));
     } else {
       Screen.lyricsStop();
       AudioMgr.playBgm(STAGES[S.stage].bgm);
@@ -328,8 +330,7 @@ const Machine = (() => {
     await wait(260);
     await Screen.stopReel(1, (k + 1) % 8);
     await wait(350);
-    AudioMgr.se("pseudo", 0.55);
-    AudioMgr.se("kira2", 0.4);
+    AudioMgr.se("tsuishi", 0.6);   // 追試スタンプ音
     Screen.rushSplash(TSUISHI_IMG, 1300);
     Screen.glowFlash("blue", 1300);
     Screen.flash("#9fc4ff", 300);
@@ -352,8 +353,8 @@ const Machine = (() => {
 
     // バトル突入（RUSH中のBGMは維持したまま）
     AudioMgr.se("pseudo", 0.5);
-    Screen.reelsVisible(false);
-    Screen.miniDigits(true, `${CHARACTERS[symbols[0]].num} ● ${CHARACTERS[symbols[2]].num}`);
+    Screen.reelsEventMode(true);
+    Screen.miniDigits(false);
     Screen.setBg(t.img, false);
     Screen.setBgPos("50% 12%");   // 縦長の先生画像は頭が切れないよう上寄せ
     Screen.playVideo("vs3d", { front: true, ms: 1800, opacity: 0.6 });
@@ -375,13 +376,13 @@ const Machine = (() => {
       Screen.setBg(t.angry, false);
       Screen.setBgPos("50% 12%");
       Screen.flash("#ff3030", 400);
-      AudioMgr.se("fail", 0.55);
+      AudioMgr.se("wara", 0.65);   // 紙束を叩きつける「わら！」
       Screen.playVideo("jikai", { front: true, ms: 1800 });
       await Screen.telop(t.loseLine, 1800, "story hot");
     }
 
     Screen.stopVideo();
-    Screen.reelsVisible(true);
+    Screen.reelsEventMode(false);
     Screen.miniDigits(false);
     restoreBg();
     await wait(400);
@@ -409,12 +410,12 @@ const Machine = (() => {
       AudioMgr.se("kyuin3", 0.6);
     }
     AudioMgr.voice("atsui");
-    Screen.reelsVisible(false);
+    const wasEventMode = Screen.reelsEventMode(true);
     Screen.confirmBg(true);
     Screen.glowFlash("rainbow", 3000);
     Screen.flash("#ffffff", 500);
     await Screen.reachTitle(seven ? "大当り確定！！" : "激熱！ 大当り確定！！", 2600, "spsp");
-    Screen.reelsVisible(true);
+    if (!wasEventMode) Screen.reelsEventMode(false);
   }
 
   async function runNormalReach(symbols, isWin, silent) {
@@ -462,8 +463,8 @@ const Machine = (() => {
     // SP発展（RUSH中はRUSH時BGMを維持したまま発展させる）
     AudioMgr.se("pseudo", 0.5);
     if (S.mode === "normal") AudioMgr.playBgm("reach");
-    Screen.reelsVisible(false);
-    Screen.miniDigits(true, `${CHARACTERS[symbols[0]].num} ● ${CHARACTERS[symbols[2]].num}`);
+    Screen.reelsEventMode(true);
+    Screen.miniDigits(false);
     // まず1枚絵を明るくクリア表示（cover・余白なし）。panなら左端(石川)から
     Screen.setBg(sp.bg, false);
     if (sp.pan) Screen.setBgPos("0% 50%");
@@ -557,7 +558,7 @@ const Machine = (() => {
     // 液晶復帰・図柄停止
     Screen.stopVideo();
     Screen.confirmBg(false);
-    Screen.reelsVisible(true);
+    Screen.reelsEventMode(false);
     Screen.miniDigits(false);
     restoreBg();
     await wait(600);
