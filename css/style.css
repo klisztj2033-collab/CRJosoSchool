@@ -597,11 +597,13 @@ body {
   left: 8px;
   top: 58px;
 }
+/* 獲得玉数・残り回数はRUSHロゴ下の左列に（右上は筐体アートの
+   常総魂に隠れて見切れるため置かない） */
 #rush-gain {
   position: absolute;
-  right: 8px;
-  top: 58px;
-  justify-content: flex-end;
+  left: 8px;
+  top: 138px;
+  justify-content: flex-start;
   gap: 0;
   max-width: 210px;
   padding: 3px 5px;
@@ -654,8 +656,11 @@ body {
 #rush-gain .rg-label:last-child { margin-left: 2px; }
 #rush-remain {
   position: absolute;
-  right: 10px;
-  top: 94px;
+  left: 12px;
+  top: 176px;
+  padding: 2px 6px;
+  background: rgba(0,0,0,.42);
+  border-radius: 5px;
 }
 /* RUSH突入ロゴ／×の表示（中央・大きすぎない程度） */
 #rush-splash {
@@ -675,6 +680,42 @@ body {
   60% { transform: translate(-50%, -50%) scale(0.95) rotate(2deg); opacity: 1; }
   100% { transform: translate(-50%, -50%) scale(1) rotate(0); }
 }
+/* ステージ名プレート（ステージ移行時に短く表示。図柄に被らない上部帯） */
+#stage-plate {
+  position: absolute;
+  left: 50%; top: 8px;
+  transform: translateX(-50%);
+  max-width: 52%;
+  max-height: 18%;
+  width: auto; height: auto;
+  z-index: 26;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.7));
+}
+#stage-plate.show { animation: plateIn .35s cubic-bezier(.3,1.5,.5,1); }
+@keyframes plateIn {
+  0% { transform: translateX(-50%) scale(2.0); opacity: 0; }
+  60% { transform: translateX(-50%) scale(0.95); opacity: 1; }
+  100% { transform: translateX(-50%) scale(1); }
+}
+
+/* RUSH楽曲の歌詞テロップ（カラオケ風・下部1行） */
+#lyrics {
+  position: absolute;
+  left: 20px; right: 20px;
+  bottom: 122px;
+  z-index: 20;
+  text-align: center;
+  font-size: 13px;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 0 0 6px #ff7bb0, 0 1px 3px #000;
+  background: rgba(20, 8, 30, 0.45);
+  border-radius: 10px;
+  padding: 3px 8px;
+  pointer-events: none;
+}
+
 #lcd-msg {
   position: absolute;
   left: 0; right: 0;
@@ -911,6 +952,35 @@ body {
   margin-right: 10px;
 }
 .so-sub { color: #9a92b8; font-size: 16px; margin: 10px 0 30px; }
+#start-pass {
+  display: block;
+  margin: 0 auto 10px;
+  width: 240px;
+  padding: 10px 16px;
+  font-size: 20px;
+  letter-spacing: 4px;
+  text-align: center;
+  color: #ffd23f;
+  background: rgba(255,255,255,0.08);
+  border: 2px solid #6a5f96;
+  border-radius: 24px;
+  outline: none;
+}
+#start-pass:focus { border-color: #ffd23f; box-shadow: 0 0 12px rgba(255,210,63,0.45); }
+#start-pass.shake { animation: passShake .3s; }
+@keyframes passShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+#start-pass-error {
+  color: #ff5050;
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 12px;
+  text-shadow: 0 0 6px rgba(255,80,80,0.5);
+}
+#start-pass-error.hidden { display: none; }
 #start-btn {
   font-size: 22px;
   font-weight: 900;

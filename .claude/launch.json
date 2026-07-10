@@ -5,7 +5,8 @@
       "name": "cr-joso",
       "runtimeExecutable": "powershell.exe",
       "runtimeArgs": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "serve.ps1"],
-      "port": 8931
+      "port": 8931,
+      "autoPort": true
     }
   ]
 }

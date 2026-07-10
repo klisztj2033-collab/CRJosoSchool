@@ -1,5 +1,5 @@
 ﻿# 簡易静的ファイルサーバー（Node/Python不要）
-$Port = 8931
+$Port = if ($env:PORT) { [int]$env:PORT } else { 8931 }
 $root = $PSScriptRoot
 $mime = @{
   ".html"="text/html; charset=utf-8"; ".css"="text/css; charset=utf-8"; ".js"="application/javascript; charset=utf-8";

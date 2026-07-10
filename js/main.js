@@ -39,6 +39,10 @@
   $("spec-btn").addEventListener("click", () => $("spec-modal").classList.remove("hidden"));
   $("spec-close").addEventListener("click", () => $("spec-modal").classList.add("hidden"));
 
+  /* どの操作でもAudioContextを起こす（SEが無音のままになる事故の保険） */
+  document.addEventListener("pointerdown", () => AudioMgr.unlock(), { capture: true });
+  document.addEventListener("keydown", () => AudioMgr.unlock(), { capture: true });
+
   /* サウンドON/OFF */
   $("sound-btn").addEventListener("click", () => {
     const on = AudioMgr.toggle();
@@ -53,13 +57,29 @@
     $("test-prob").textContent = "確率 " + label;
   });
 
-  /* スタート（オーディオ解禁） */
-  $("start-btn").addEventListener("click", () => {
+  /* スタート（パスワード確認＋オーディオ解禁） */
+  const START_PASS = "07210518";
+  function tryStart() {
+    const pass = $("start-pass");
+    if (pass.value !== START_PASS) {
+      $("start-pass-error").classList.remove("hidden");
+      pass.value = "";
+      pass.classList.remove("shake");
+      void pass.offsetWidth;
+      pass.classList.add("shake");
+      pass.focus();
+      return;
+    }
     $("start-overlay").classList.add("hidden");
-    AudioMgr.playBgm("normal");
+    AudioMgr.playBgm(STAGES[0].bgm);   // 教室ステージのBGMから開始
     // 遊技開始時に自動で打ち始める（左打ち45）
     handle.value = 45;
     applyHandle();
+  }
+  $("start-btn").addEventListener("click", tryStart);
+  $("start-pass").addEventListener("keydown", (e) => {
+    e.stopPropagation();   // ←→スペースのハンドル操作と衝突させない
+    if (e.key === "Enter") tryStart();
   });
 
   /* 発光差分・演出画像のプリロード（切り替え時のチラつき防止） */
@@ -76,6 +96,11 @@
     ...Object.values(CONFIRM_CHAR_IMGS),
     ...Object.values(ZUGARA_IMGS),
     RUSH_LOGO, BATSU_IMG, ...Object.values(RUSH_NUM_IMGS),
+    TSUISHI_IMG,
+    ...STAGES.map(s => s.plate),
+    ...TEACHER_BATTLES.map(t => t.img),
+    ...TEACHER_BATTLES.map(t => t.angry),
+    ...CHIBI_IMGS,
   ];
   for (const p of preloadList) {
     const img = new Image();

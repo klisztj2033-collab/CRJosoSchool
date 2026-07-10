@@ -7,9 +7,11 @@ const AudioMgr = (() => {
     normal:  "assets/bgm/maou_normal_acoustic53.mp3",
     reach:   "assets/bgm/maou_reach_neorock83.mp3",
     jackpot: "assets/bgm/maou_jackpot_neorock81.mp3",
-    rush:    "assets/bgm/RUSH時BGM.mp3",
+    rush:    "assets/bgm/常総の帰り道.mp3",   // RUSH中は歌もの＋歌詞テロップ
     // 常総学院シミュレーターより
     nostalgia: "assets/bgm/日常_のどか.mp3",
+    comedy:  "assets/bgm/日常_コメディ.mp3",
+    hot:     "assets/bgm/日常_白熱.mp3",
     sad:     "assets/bgm/悲しみ.mp3",
     creepy:  "assets/bgm/不気味.mp3",
   };
@@ -49,8 +51,6 @@ const AudioMgr = (() => {
   let enabled = true;
   let currentBgm = null;
   let currentBgmKey = null;
-  let currentBgmSource = null;
-  let currentBgmGain = null;
   const seCache = {};
   let audioCtx = null;
   const bufferCache = {};
@@ -78,8 +78,30 @@ const AudioMgr = (() => {
   // SEはデコード済みバッファから切り出して再生する。
   // （SEごとに<audio>要素を生成するとブラウザの同時メディア数制限に
   //   達したときにループ中のBGM要素が止められることがある）
+  // Web Audioが使えない環境（file://直開きでfetch不可・デコード失敗・
+  // コンテキスト停止など）では<audio>要素のフォールバックで必ず鳴らす
+  let clipFallback = location.protocol === "file:";
+
+  function playClipElement(def, volume) {
+    if (!seCache._sprite) { seCache._sprite = new Audio(def.src); seCache._sprite.preload = "auto"; }
+    const a = seCache._sprite.cloneNode();
+    a.volume = volume;
+    const durMs = Math.max(30, (def.end - def.start) * 1000);
+    const begin = () => {
+      try { a.currentTime = def.start; } catch (e) {}
+      a.play().catch(() => {});
+      setTimeout(() => { a.pause(); }, durMs);
+    };
+    if (a.readyState >= 1) begin();
+    else { a.addEventListener("loadedmetadata", begin, { once: true }); a.load(); }
+  }
+
   function playClip(def, volume) {
+    if (clipFallback) { playClipElement(def, volume); return; }
     const ctx = getAudioCtx();
+    // コンテキストが停止中だとバッファ再生は「無音で成功」する。
+    // その間は<audio>方式で確実に鳴らす（resumeは getAudioCtx が試みている）
+    if (ctx.state !== "running") { playClipElement(def, volume); return; }
     loadBuffer(def.src).then(buf => {
       const node = ctx.createBufferSource();
       node.buffer = buf;
@@ -88,7 +110,12 @@ const AudioMgr = (() => {
       node.connect(gain).connect(ctx.destination);
       node.onended = () => { try { node.disconnect(); gain.disconnect(); } catch (e) {} };
       node.start(0, def.start, Math.max(0.01, def.end - def.start));
-    }).catch(() => {});
+    }).catch(() => {
+      // 以後は<audio>方式に切り替えてSEを鳴らし続ける
+      console.warn("SE: Web Audio再生に失敗したため<audio>フォールバックへ切替");
+      clipFallback = true;
+      playClipElement(def, volume);
+    });
   }
 
   function playBgm(key, volume = 0.35) {
@@ -98,20 +125,7 @@ const AudioMgr = (() => {
     warmSeSprites();
     const a = new Audio(BGM_PATHS[key]);
     a.loop = true;
-    if (key === "rush") {
-      a.volume = Math.min(1, volume);
-      try {
-        const ctx = getAudioCtx();
-        currentBgmSource = ctx.createMediaElementSource(a);
-        currentBgmGain = ctx.createGain();
-        currentBgmGain.gain.value = 6;
-        currentBgmSource.connect(currentBgmGain).connect(ctx.destination);
-      } catch (e) {
-        a.volume = 1;
-      }
-    } else {
-      a.volume = volume;
-    }
+    a.volume = Math.min(1, volume);
     // 再生に失敗したらキーを捨て、次のplayBgm呼び出しで再試行できるようにする
     // （キーが残ると同キー早期returnでBGMが止まったままになる）
     a.play().catch(() => { if (currentBgm === a) { currentBgm = null; currentBgmKey = null; } });
@@ -121,9 +135,12 @@ const AudioMgr = (() => {
 
   function stopBgm() {
     if (currentBgm) { currentBgm.pause(); currentBgm = null; }
-    if (currentBgmSource) { try { currentBgmSource.disconnect(); } catch (e) {} currentBgmSource = null; }
-    if (currentBgmGain) { try { currentBgmGain.disconnect(); } catch (e) {} currentBgmGain = null; }
     currentBgmKey = null;
+  }
+
+  /* ユーザー操作のタイミングでAudioContextを確実に起こす（SE無音対策） */
+  function unlock() {
+    try { getAudioCtx(); } catch (e) {}
   }
 
   function se(key, volume = 0.5) {
@@ -159,5 +176,5 @@ const AudioMgr = (() => {
     return enabled;
   }
 
-  return { playBgm, stopBgm, se, voice, toggle, get enabled() { return enabled; } };
+  return { playBgm, stopBgm, se, voice, toggle, unlock, get enabled() { return enabled; } };
 })();

@@ -143,7 +143,9 @@ const Board = (() => {
       b.vy = Math.max(b.vy, 0.7);
     }
   }
-  addRail(916, 985, 696, 1018);             // 右・寄りレール
+  // 右・寄りレール：アタッカー開放中は玉を左へ運ばず落下させて吸い込む
+  // （実機の大入賞口の羽根に相当。閉鎖中だけ通常のこぼしレールとして働く）
+  rails.push({ x1: 916, y1: 985, x2: 696, y2: 1018, r: BALL_R, offWhenAttacker: true });
   // ※ヘソ両脇の斜め誘導レールは置かず、釘と自然落下だけで入賞させる。
 
   // 液晶透過穴の輪郭（玉は境界線まで動き、縁に沿って転がる）
@@ -222,6 +224,7 @@ const Board = (() => {
 
       // レール衝突（転がして誘導）
       for (const rl of rails) {
+        if (rl.offWhenAttacker && attackerOpen) continue;
         const dx = rl.x2 - rl.x1, dy = rl.y2 - rl.y1;
         const len2 = dx * dx + dy * dy;
         let t = ((b.x - rl.x1) * dx + (b.y - rl.y1) * dy) / len2;

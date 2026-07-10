@@ -23,6 +23,10 @@ const Machine = (() => {
     rushActive: false,       // RUSHセッション中フラグ
     rushInfoInJackpot: false,
     history: [],             // {type:"rush10"|"jitan4"|...}
+    stage: 0,                // 通常時ステージ（STAGES index）
+    stageSpins: 0,           // 現ステージでの消化回転数
+    stageSpan: STAGE_SPAN(), // 次のステージ移行までの回転数
+    pendingChance: false,    // 先読み：荒川沖駅（チャンスステージ）へ移行予約
   };
 
   // テストプレイ用フラグ
@@ -89,8 +93,45 @@ const Machine = (() => {
   }
 
   function bgmForMode() {
-    if (S.mode === "rush") AudioMgr.playBgm("rush");
-    else AudioMgr.playBgm("normal");
+    if (S.mode === "rush") {
+      // RUSH中は常に歌もの「常総の帰り道」＋歌詞テロップ
+      AudioMgr.playBgm("rush", 0.6);
+      Screen.lyricsStart(KAERIMICHI_LYRICS);
+    } else {
+      Screen.lyricsStop();
+      AudioMgr.playBgm(STAGES[S.stage].bgm);
+    }
+  }
+
+  /* ---------- 通常時ステージ管理 ---------- */
+  function changeStage(idx, playBgm = true) {
+    if (idx === S.stage) return;
+    S.stage = idx;
+    S.stageSpins = 0;
+    S.stageSpan = STAGE_SPAN();
+    const st = STAGES[idx];
+    Screen.setBg(st.bg);
+    Screen.stagePlate(st.plate, 1700);
+    AudioMgr.se("kira", 0.4);
+    if (st.chance) Screen.glowFlash("blue", 1500);   // チャンスステージは青点灯で示唆
+    if (playBgm && S.mode === "normal" && !S.inJackpot) AudioMgr.playBgm(st.bgm);
+  }
+
+  /* 変動開始ごとのステージ進行（先読みチャンス移行／定期ローテーション） */
+  function stepStage() {
+    if (S.mode !== "normal") return;
+    S.stageSpins++;
+    if (S.pendingChance && S.stage !== CHANCE_STAGE) {
+      S.pendingChance = false;
+      changeStage(CHANCE_STAGE);
+      return;
+    }
+    if (S.stageSpins >= S.stageSpan) {
+      // チャンスステージ以外へローテーション
+      let next = Math.floor(Math.random() * (STAGES.length - 1));
+      if (next === S.stage) next = (next + 1) % (STAGES.length - 1);
+      changeStage(next);
+    }
   }
 
   /* ---------- 入賞ハンドラ ---------- */
@@ -108,12 +149,16 @@ const Machine = (() => {
   let jackpotTarget = 0;
   function onAttacker() {
     updateBalls(SPEC.ATTACKER_PAY);
+    // オーバー入賞：賞球は払うがカウンター表示には数えない（分母超え防止）
+    if (roundCatch >= SPEC.ROUND_CATCH) return;
     jackpotGained += SPEC.ATTACKER_PAY;
     if (S.rushActive) {
       S.rushGained += SPEC.ATTACKER_PAY;
       refreshRushInfo();
     }
     roundCatch++;
+    // 規定カウント到達で即閉鎖（開きっぱなしで数が超えるのを防ぐ）
+    if (roundCatch >= SPEC.ROUND_CATCH) Board.attackerOpen = false;
     Screen.jackpotBalls(jackpotGained, jackpotTarget);
   }
 
@@ -143,6 +188,8 @@ const Machine = (() => {
     if (holdColor >= 3) AudioMgr.se("kira2", 0.5);  // 赤保留以上で保留変化音
     // 金・虹保留は告知音で「当たるかも」を煽る（RUSH中はBGMを活かして省略）
     if (S.mode === "normal" && holdColor >= 4) AudioMgr.se("kyuin3", 0.6);
+    // 先読み：当り保留の50%で荒川沖駅（チャンスステージ）へ移行予約
+    if (S.mode === "normal" && isWin && Math.random() < 0.5) S.pendingChance = true;
     if (holdColor === 5) Screen.glowFlash("rainbow", 1400);      // 虹保留：筐体虹点灯
     else if (holdColor >= 4) Screen.glowFlash("gold", 1000);     // 金保留：筐体金点灯
     S.holdQueue.push({ isWin, grade, pattern, holdColor, mob, showOdd });
@@ -171,12 +218,17 @@ const Machine = (() => {
     updateCounter();
 
     const quick = S.mode !== "normal"; // 電サポ中は高速変動
+    stepStage();                       // ステージ進行（通常時のみ）
     Screen.clearPose();
     Screen.confirmBg(false);
     Screen.startAll();
 
     // 図柄決定
     const symbols = decideSymbols(isWin, pattern, grade, showOdd);
+
+    // 擬似連「追試」：一度止まったように見せて再変動（回数が多いほど期待度UP）
+    const tsuishi = (S.mode === "normal") ? decideTsuishi(isWin, pattern) : 0;
+    for (let i = 0; i < tsuishi; i++) await tsuishiRespin();
 
     // 群予告（当落連動・信頼度約60%）
     if (mob) await Screen.mobYokoku();
@@ -210,11 +262,14 @@ const Machine = (() => {
         break;
 
       case "sp":
-        await runSPReach(symbols, isWin, pattern.sp, false);
+        // RUSH中は先生バトル（勝利＝大当り継続）
+        if (S.mode !== "normal") await runTeacherBattle(symbols, isWin);
+        else await runSPReach(symbols, isWin, pattern.sp, false);
         break;
 
       case "spsp":
-        await runSPReach(symbols, isWin, pattern.sp, true);
+        if (S.mode !== "normal") await runTeacherBattle(symbols, isWin);
+        else await runSPReach(symbols, isWin, pattern.sp, true);
         break;
 
       case "zenkaiten":
@@ -260,6 +315,80 @@ const Machine = (() => {
     if (c === a) c = (a + 3) % 8;
     const b = Math.floor(Math.random() * 8);
     return [a, b, c];
+  }
+
+  /* 擬似連「追試」：チャンス目で一旦停止→追試スプラッシュ→再変動 */
+  async function tsuishiRespin() {
+    await wait(900);
+    // チャンス目（順目・非テンパイ）で仮停止
+    const k = Math.floor(Math.random() * 8);
+    await Screen.stopReel(0, k);
+    await wait(220);
+    await Screen.stopReel(2, (k + 2) % 8);
+    await wait(260);
+    await Screen.stopReel(1, (k + 1) % 8);
+    await wait(350);
+    AudioMgr.se("pseudo", 0.55);
+    AudioMgr.se("kira2", 0.4);
+    Screen.rushSplash(TSUISHI_IMG, 1300);
+    Screen.glowFlash("blue", 1300);
+    Screen.flash("#9fc4ff", 300);
+    await wait(1300);
+    Screen.startAll();   // 再変動
+  }
+
+  /* RUSH中の先生バトル（勝利＝大当り継続／敗北＝ハズレ） */
+  async function runTeacherBattle(symbols, isWin) {
+    const t = pickTeacherBattle();
+    await wait(500);
+    await Screen.stopReel(0, symbols[0]);
+    await wait(280);
+    await Screen.stopReel(2, symbols[2], { decel: true });
+    Screen.tenpaiPose(true);
+    AudioMgr.se("reach", 0.5);
+    Screen.glowFlash("blue", 1000);
+    Screen.showTextImg("reach", 1000);
+    await wait(900);
+
+    // バトル突入（RUSH中のBGMは維持したまま）
+    AudioMgr.se("pseudo", 0.5);
+    Screen.reelsVisible(false);
+    Screen.miniDigits(true, `${CHARACTERS[symbols[0]].num} ● ${CHARACTERS[symbols[2]].num}`);
+    Screen.setBg(t.img, false);
+    Screen.setBgPos("50% 12%");   // 縦長の先生画像は頭が切れないよう上寄せ
+    Screen.playVideo("vs3d", { front: true, ms: 1800, opacity: 0.6 });
+    await Screen.reachTitle(t.title, 1800, "sp");
+    await Screen.telop(t.intro, 1500, "story");
+    for (const ln of t.lines) await Screen.telop(ln, 1400, "story hot");
+    await Screen.pushButton(2400);
+
+    if (isWin) {
+      AudioMgr.se("flash", 0.6);
+      AudioMgr.se("hit", 0.7);
+      Screen.fxKira("kiraLine2", 1500);
+      Screen.glowFlash("red", 1500);
+      Screen.playVideo("gekiha", { front: true, ms: 2000 });
+      Screen.flash("#ffd23f", 600);
+      await Screen.telop(t.winLine, 1600, "story hot");
+    } else {
+      // 敗北：先生の怒り差分に切り替えて叱られる
+      Screen.setBg(t.angry, false);
+      Screen.setBgPos("50% 12%");
+      Screen.flash("#ff3030", 400);
+      AudioMgr.se("fail", 0.55);
+      Screen.playVideo("jikai", { front: true, ms: 1800 });
+      await Screen.telop(t.loseLine, 1800, "story hot");
+    }
+
+    Screen.stopVideo();
+    Screen.reelsVisible(true);
+    Screen.miniDigits(false);
+    restoreBg();
+    await wait(400);
+    await Screen.stopReel(1, symbols[1], { decel: true });
+    if (isWin) Screen.winPose();
+    else AudioMgr.se("lose", 0.3);
+    Screen.tenpaiPose(false);
   }
 
   /* 7図柄テンパイの即時確定カット */
@@ -592,6 +721,7 @@ const Machine = (() => {
 
     // 当りファンファーレ＋筐体フル点灯
     AudioMgr.stopBgm();
+    Screen.lyricsStop();
     AudioMgr.se("fanfare", 0.7);
     AudioMgr.se("levelup", 0.55);
     AudioMgr.voice("jackpot");
@@ -664,18 +794,24 @@ const Machine = (() => {
     S.rushActive = false;   // RUSHセッション終了
     S.rushInfoInJackpot = false;
     updateModeUI();
+    Screen.lyricsStop();
     AudioMgr.se("chime", 0.35);  // 放課後のチャイム
     AudioMgr.playBgm("sad");
     Screen.rushSplash("batsu", 2000);   // RUSH終了：×の大表示
     await Screen.telop("RUSH終了…… また明日から頑張ろう", 2200, "story");
     await wait(1000);
-    AudioMgr.playBgm("normal");
+    // 通常時は教室ステージから再スタート
+    S.stage = 0;
+    S.stageSpins = 0;
+    S.stageSpan = STAGE_SPAN();
+    S.pendingChance = false;
+    bgmForMode();
     restoreBg();
   }
 
   function restoreBg() {
     if (S.mode === "rush") Screen.setBg(BGS.cyber1);
-    else Screen.setBg(BGS.classroom);
+    else Screen.setBg(STAGES[S.stage].bg);
   }
 
   /* ---------- 発射管理 ---------- */

@@ -166,21 +166,23 @@ const Screen = (() => {
     box.className = "hidden";
   }
 
-  /* 群予告（ちびキャラ大行進） */
+  /* 群予告（ちびキャラ大行進＝魚群演出） */
   async function mobYokoku() {
     AudioMgr.se("group", 0.5);
     glowFlash("blue", 2400);
     const layer = $("mob-layer");
-    for (let i = 0; i < 14; i++) {
+    // 全ちびキャラをシャッフルして2周分流す（同じ顔が続かない魚群）
+    const order = [...CHIBI_IMGS, ...CHIBI_IMGS].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < order.length; i++) {
       const img = document.createElement("img");
-      img.src = CHIBI_IMGS[i % 2];
+      img.src = order[i];
       img.className = "mob";
-      img.style.bottom = `${Math.random() * 30}px`;
-      img.style.animationDelay = `${i * 0.13}s`;
-      img.style.height = `${70 + Math.random() * 40}px`;
+      img.style.bottom = `${Math.random() * 34}px`;
+      img.style.animationDelay = `${i * 0.11}s`;
+      img.style.height = `${64 + Math.random() * 46}px`;
       layer.appendChild(img);
     }
-    await wait(2600);
+    await wait(2900);
     layer.innerHTML = "";
   }
 
@@ -263,6 +265,41 @@ const Screen = (() => {
     if (!text) { el.className = "hidden"; return; }
     el.textContent = text;
     el.className = cls;
+  }
+
+  /* ステージ名プレート（移行時に短く表示） */
+  let stagePlateTimer = null;
+  function stagePlate(src, ms = 1600) {
+    const el = $("stage-plate");
+    if (!el) return;
+    if (!src) { el.classList.add("hidden"); el.classList.remove("show"); return; }
+    el.src = encodeURI(src);
+    el.classList.remove("hidden");
+    el.classList.add("show");
+    void el.offsetWidth;
+    if (stagePlateTimer) clearTimeout(stagePlateTimer);
+    if (ms > 0) stagePlateTimer = setTimeout(() => { el.classList.add("hidden"); el.classList.remove("show"); }, ms);
+  }
+
+  /* 歌詞テロップ（RUSH楽曲用のカラオケ風ティッカー） */
+  let lyricsTimer = null;
+  let lyricsIdx = 0;
+  function lyricsStart(lines, intervalMs = 4200) {
+    const el = $("lyrics");
+    if (!el || !lines || !lines.length) return;
+    lyricsStop();
+    lyricsIdx = 0;
+    el.textContent = lines[0];
+    el.classList.remove("hidden");
+    lyricsTimer = setInterval(() => {
+      lyricsIdx = (lyricsIdx + 1) % lines.length;
+      el.textContent = lines[lyricsIdx];
+    }, intervalMs);
+  }
+  function lyricsStop() {
+    const el = $("lyrics");
+    if (el) el.classList.add("hidden");
+    if (lyricsTimer) { clearInterval(lyricsTimer); lyricsTimer = null; }
   }
 
   /* ---------- 保留表示（発光オーブ画像） ---------- */
@@ -439,6 +476,7 @@ const Screen = (() => {
     wait, setBg, setBgPos, panBg, setSymbol, startReel, stopReel, startAll, reelsVisible,
     miniDigits, flash, telop, reachTitle, cutin, mobYokoku, pushButton,
     modeBanner, stCount, lcdMsg, renderHolds, glow, glowFlash, fxKira,
+    stagePlate, lyricsStart, lyricsStop,
     playVideo, stopVideo, tenpaiPose, winPose, clearPose, spinDisplay, confirmBg,
     showTextImg, hideTextImg, rushInfo, rushSplash, yakumonoDrop,
     jackpotShow, jackpotRound, jackpotBalls, jackpotChar, jackpotHide,

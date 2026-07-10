@@ -62,7 +62,9 @@ const CHARACTERS = [
   { num: 8, key: "chinone",   name: "ちのね かい", img: "assets/character/ちのね.png", quote: "大森くん！大森君！" },
 ];
 
-const CHIBI_IMGS = ["assets/character/ちびきゃら01.png", "assets/character/ちびキャラ02.png"];
+/* 群予告（魚群風・ちび大行進）用のちびキャラ画像 */
+const CHIBI_IMGS = Array.from({ length: 11 }, (_, i) =>
+  `assets/character/ちびキャラ${String(i + 1).padStart(2, "0")}_t.png`);
 
 /* リール図柄画像（数字＋キャラ＋宝石装飾。番号1〜8に対応） */
 const ZUGARA_IMGS = {
@@ -100,6 +102,111 @@ const BGS = {
   skyClouds: "assets/bg/pixabay_sky_clouds.jpg",
   skyBlue:   "assets/bg/pixabay_sky_blue.jpg",
 };
+
+/* ---------- 通常時ステージ（プレート画像＋背景＋BGM） ----------
+ * 一定回転で移行。荒川沖駅はチャンスステージ（先読みで強制移行） */
+const STAGES = [
+  { id: "classroom",  name: "教室",       bg: BGS.classroom, plate: "imagin/教室_t.png",       bgm: "nostalgia" },
+  { id: "trainIn",    name: "常磐線車内", bg: BGS.trainIn,   plate: "imagin/常磐線車内_t.png", bgm: "comedy" },
+  { id: "library",    name: "図書室",     bg: BGS.library,   plate: "imagin/図書室_t.png",     bgm: "nostalgia" },
+  { id: "gym",        name: "体育館",     bg: BGS.gym,       plate: "imagin/体育館_t.png",     bgm: "hot" },
+  { id: "tsuchiura",  name: "土浦駅",     bg: BGS.station,   plate: "imagin/土浦駅_t.png",     bgm: "comedy" },
+  { id: "arakawaoki", name: "荒川沖駅",   bg: BGS.train,     plate: "imagin/荒川沖駅_t.png",   bgm: "hot", chance: true },
+];
+const CHANCE_STAGE = 5;               // 荒川沖駅（チャンスステージ）のindex
+const STAGE_SPAN = () => 20 + Math.floor(Math.random() * 16);  // 20〜35回転で移行
+
+/* ---------- 擬似連「追試」 ---------- */
+const TSUISHI_IMG = "imagin/追試_t.png";
+/* 擬似連回数の抽選（通常時のみ）。回数が多いほど期待度UP */
+function decideTsuishi(isWin, pattern) {
+  if (pattern.type === "zenkaiten" || pattern.type === "quick" || pattern.type === "yokoku") return 0;
+  const r = Math.random();
+  if (isWin) {
+    if (pattern.type === "spsp") return r < 0.35 ? 2 : (r < 0.80 ? 1 : 0);
+    return r < 0.40 ? 1 : 0;                       // sp / normal-reach
+  }
+  if (pattern.type === "spsp") return r < 0.30 ? 1 : 0;
+  return r < 0.08 ? 1 : 0;                         // ハズレはたまに1回で終わる
+}
+
+/* ---------- RUSH中の先生バトル ----------
+ * RUSH中の当落を先生とのバトル形式で見せる（勝利＝大当り継続） */
+const TEACHER_BATTLES = [
+  {
+    id: "takahashi", name: "高橋先生", img: "imagin/高橋先生.png", angry: "imagin/高橋先生_怒り.png",
+    title: "VS高橋先生 英単語テスト",
+    intro: "抜き打ち英単語テスト！ 80点以下は赤点──！？",
+    lines: ["高橋先生「範囲は昨日言った通りです」", "間違えた数だけ課題が増える…！ 思い出せ！！"],
+    winLine: "92点！！ 赤点回避──テスト突破！！",
+    loseLine: "78点……赤点。放課後は補習……",
+  },
+  {
+    id: "ito", name: "伊藤先生", img: "imagin/伊藤先生.png", angry: "imagin/伊藤先生_怒り.png",
+    title: "VS伊藤先生 持ち物検査",
+    intro: "抜き打ち持ち物検査！！ 漫画・ゲーム・スマホは没収！！",
+    lines: ["伊藤先生「カバンを開けなさい」", "頼む…何も出てくるな…！！"],
+    winLine: "出てきたのはライトノベル──なぜかセーフ！！",
+    loseLine: "スマホ発見……没収……",
+  },
+  {
+    id: "sugaya", name: "菅谷先生", img: "imagin/菅谷先生.png", angry: "imagin/菅谷先生_怒り.png",
+    title: "VS菅谷先生 授業態度チェック",
+    intro: "菅谷先生が教室を見回っている……",
+    lines: ["（目を合わせるな…真面目に板書しろ…）", "菅谷先生「─────」"],
+    winLine: "見回り通過！！ 課題回避──！！",
+    loseLine: "「わら！」……わら半紙の課題が課された……",
+  },
+];
+function pickTeacherBattle() {
+  return TEACHER_BATTLES[Math.floor(Math.random() * TEACHER_BATTLES.length)];
+}
+
+/* ---------- RUSH楽曲「常総の帰り道」歌詞（3連チャン以上で流れる） ---------- */
+const KAERIMICHI_LYRICS = [
+  "♪ 常総の帰り道",
+  "英単語テストは 間違えた数だけ",
+  "全体責任で 課題が増えたね",
+  "体育祭の点数 どこか不自然で",
+  "笑うしかなくて それでも走った",
+  "頭のおかしい パソコンサークル",
+  "画面の向こうで 夜まで騒いだ",
+  "女子棟に忍び込んだ 学習合宿の夜",
+  "泥棒だって 大騒ぎになって",
+  "あの日の常総学院 全部、今は愛しい",
+  "ふざけた傷も まじめな涙も",
+  "ぜんぶ僕らの証",
+  "あの日の常総学院 名前を呼ぶたびに",
+  "胸の奥で まだ光るんだ",
+  "帰りたくなるんだ",
+  "教室の窓ガラス ふざけて割った日の",
+  "静かな顔のまま 謝ったよね",
+  "全校集会では 生徒会長がずっと",
+  "愛を語り続けて 授業は短縮",
+  "テスト中の寝っ屁で みんな肩を震わせ",
+  "怒られたあとにも 笑いが残った",
+  "同性同士の告白 いくつも生まれて",
+  "ぎこちない廊下に 春が混ざってた",
+  "あの日の常総学院 全部、今は愛しい",
+  "ふざけた傷も まじめな涙も",
+  "ぜんぶ僕らの証",
+  "彼女の耳を借りて イヤホンの耳カスを",
+  "こっそり掃除した そんな日もあった",
+  "先生の言ってた トライって結局",
+  "何だったんだろう 今も少し迷う",
+  "それでも進むたび 思い出すのは",
+  "模造紙の山と 夜の図書館",
+  "持ち物検査の前 情報戦みたいに",
+  "みんなで隠してた 笑い声まで",
+  "あの日の常総学院 頭ごなしの朝も",
+  "熱かった夜も ぜんぶ僕らの証",
+  "あの日の常総学院 同じ髪型の列",
+  "まぶしいほど ひとつだった",
+  "もう戻れないけど",
+  "あの日の常総学院 名前を呼ぶたびに",
+  "胸の奥で まだ光るんだ",
+  "帰りたくなるんだ",
+];
 
 /* 光エフェクト（OKUMONO） */
 const FX_IMGS = {
