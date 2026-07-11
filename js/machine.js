@@ -648,11 +648,17 @@ const Machine = (() => {
   /* ---------- 大当り ---------- */
   // 1セット分（10R等）のラウンド消化
   async function playSet(setNo, totalSets, rounds, baseIdx, bonusArt = false) {
+    // チャレンジ後のボーナス（2セット目）は専用一枚絵を持つキャラだけを回す
+    // （専用絵の無いキャラでチャレンジ前の確定演出画像が出ないように）
+    const bonusKeys = bonusArt ? Object.keys(BONUS_CHAR_IMGS) : null;
     for (let r = 1; r <= rounds; r++) {
       Screen.jackpotRound(totalSets > 1
         ? `${setNo}セット目 ROUND ${r} / ${rounds}`
         : `ROUND ${r} / ${rounds}`);
-      Screen.jackpotChar(CHARACTERS[(baseIdx + r + setNo) % 8].key, { bonus: bonusArt });
+      const charKey = bonusArt
+        ? bonusKeys[(baseIdx + r + setNo) % bonusKeys.length]
+        : CHARACTERS[(baseIdx + r + setNo) % 8].key;
+      Screen.jackpotChar(charKey, { bonus: bonusArt });
       roundCatch = 0;
       if (bonusArt && r === 1) {
         AudioMgr.seStack([

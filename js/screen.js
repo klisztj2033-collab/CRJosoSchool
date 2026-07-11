@@ -345,7 +345,13 @@ const Screen = (() => {
 
   /* ---------- 大当り画面 ---------- */
   function jackpotArt(charKey, opts = {}) {
-    const bonusSrc = opts.bonus && BONUS_CHAR_IMGS && BONUS_CHAR_IMGS[charKey];
+    let bonusSrc = opts.bonus && BONUS_CHAR_IMGS && BONUS_CHAR_IMGS[charKey];
+    // チャレンジ後のボーナスではチャレンジ前の確定演出画像を出さない：
+    // 専用絵が無いキャラは専用絵を持つキャラの絵で代用する
+    if (opts.bonus && !bonusSrc && BONUS_CHAR_IMGS) {
+      const keys = Object.keys(BONUS_CHAR_IMGS);
+      if (keys.length) bonusSrc = BONUS_CHAR_IMGS[keys[charKey.length % keys.length]];
+    }
     const src = opts.src || bonusSrc ||
       (CONFIRM_CHAR_IMGS && CONFIRM_CHAR_IMGS[charKey]) ||
       (charByKey(charKey) || CHARACTERS[0]).img;
