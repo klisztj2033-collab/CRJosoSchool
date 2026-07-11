@@ -57,11 +57,14 @@
     $("test-prob").textContent = "確率 " + label;
   });
 
-  /* スタート（パスワード確認＋オーディオ解禁） */
-  const START_PASS = "07210518";
+  /* スタート（パスワード確認＋オーディオ解禁）
+   * 通常: "0518" / テストモード: "test"（TESTボタン群が使えるようになる） */
+  const START_PASS = "0518";
+  const TEST_PASS = "test";
   function tryStart() {
     const pass = $("start-pass");
-    if (pass.value !== START_PASS) {
+    const value = pass.value.trim();
+    if (value !== START_PASS && value !== TEST_PASS) {
       $("start-pass-error").classList.remove("hidden");
       pass.value = "";
       pass.classList.remove("shake");
@@ -70,6 +73,7 @@
       pass.focus();
       return;
     }
+    if (value === TEST_PASS) $("test-btns").classList.remove("hidden");
     $("start-overlay").classList.add("hidden");
     AudioMgr.playBgm(STAGES[0].bgm);   // 教室ステージのBGMから開始
     // 遊技開始時に自動で打ち始める（左打ち45）
@@ -93,7 +97,11 @@
     "imagin/体育祭 大声援リレー.png", "imagin/ちのね_ラブレター.png",
     ...Object.values(TEXT_IMGS),
     ...Object.values(SPSP_IMGS),
+    ...Object.values(SPSP_EVENT_IMGS),
     ...Object.values(CONFIRM_CHAR_IMGS),
+    ...Object.values(BONUS_CHAR_IMGS),
+    ...Object.values(TEACHER_CONFIRM_IMGS),
+    PREMIUM_CONFIRM_IMG,
     ...Object.values(ZUGARA_IMGS),
     RUSH_LOGO, BATSU_IMG, ...Object.values(RUSH_NUM_IMGS),
     TSUISHI_IMG,

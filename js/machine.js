@@ -153,6 +153,7 @@ const Machine = (() => {
     updateBalls(SPEC.ATTACKER_PAY);
     // オーバー入賞：賞球は払うがカウンター表示には数えない（分母超え防止）
     if (roundCatch >= SPEC.ROUND_CATCH) return;
+    if (roundCatch === 0) AudioMgr.se("payout", 0.16);
     jackpotGained += SPEC.ATTACKER_PAY;
     if (S.rushActive) {
       S.rushGained += SPEC.ATTACKER_PAY;
@@ -192,7 +193,13 @@ const Machine = (() => {
     if (S.mode === "normal" && holdColor >= 4) AudioMgr.se("kyuin3", 0.6);
     // 先読み：当り保留の50%で荒川沖駅（チャンスステージ）へ移行予約
     if (S.mode === "normal" && isWin && Math.random() < 0.5) S.pendingChance = true;
-    if (holdColor === 5) Screen.glowFlash("rainbow", 1400);      // 虹保留：筐体虹点灯
+    if (holdColor === 5) {
+      AudioMgr.seStack([
+        { key: "rainbowFlash", volume: 0.52 },
+        { key: "kyuinBoost", volume: 0.24, delay: 100 },
+      ], { duckFactor: 0.55, duckMs: 1500 });
+      Screen.glowFlash("rainbow", 1400);                         // 虹保留：筐体虹点灯
+    }
     else if (holdColor >= 4) Screen.glowFlash("gold", 1000);     // 金保留：筐体金点灯
     S.holdQueue.push({ isWin, grade, pattern, holdColor, mob, showOdd });
     Screen.renderHolds(S.holdQueue);
@@ -282,11 +289,12 @@ const Machine = (() => {
     await wait(400);
 
     if (isWin) {
-      await jackpotFlow(symbols, grade, showOdd);
+      await jackpotFlow(symbols, grade, showOdd, pattern);
     } else {
       // モード消化
       if (S.mode !== "normal") {
         S.modeLeft--;
+        if ([10, 5, 1].includes(S.modeLeft)) AudioMgr.se("lastChance", 0.34);
         if (S.modeLeft <= 0) await endMode();
         else updateModeUI();
       }
@@ -370,6 +378,11 @@ const Machine = (() => {
       Screen.glowFlash("red", 1500);
       Screen.playVideo("gekiha", { front: true, ms: 2000 });
       Screen.flash("#ffd23f", 600);
+      if (TEACHER_CONFIRM_IMGS[t.id]) {
+        Screen.stopVideo();
+        Screen.setBg(TEACHER_CONFIRM_IMGS[t.id], false);
+        await Screen.reachTitle("バトル突破 大当り確定！！", 1600, "spsp");
+      }
       await Screen.telop(t.winLine, 1600, "story hot");
     } else {
       // 敗北：先生の怒り差分に切り替えて叱られる
@@ -395,7 +408,10 @@ const Machine = (() => {
   /* 7図柄テンパイの即時確定カット */
   async function sevenTenpaiCue() {
     // RUSH中はRUSH時BGMに告知音を被せない
-    if (S.mode === "normal") AudioMgr.se("kyuin3", 0.6);
+    AudioMgr.seStack([
+      { key: "sevenJackpot", volume: 0.72 },
+      { key: "kyuinBoost", volume: 0.34, delay: 140 },
+    ], { duckFactor: 0.28, duckMs: 2600 });
     Screen.glowFlash("rainbow", 2400);
     Screen.flash("#fff", 300);
     await Screen.reachTitle("７図柄テンパイ！！", 1300, "spsp");
@@ -407,7 +423,10 @@ const Machine = (() => {
     // RUSH中はRUSH時BGMを流し続ける（BGM切替も告知音も被せない）
     if (S.mode === "normal") {
       AudioMgr.playBgm("jackpot");   // 確定演出ではRUSH時BGMを先出ししない
-      AudioMgr.se("kyuin3", 0.6);
+      AudioMgr.seStack([
+        { key: "kyuinBoost", volume: 0.56 },
+        { key: "rainbowFlash", volume: 0.32, delay: 100 },
+      ], { duckFactor: 0.32, duckMs: 2400 });
     }
     AudioMgr.voice("atsui");
     const wasEventMode = Screen.reelsEventMode(true);
@@ -496,27 +515,56 @@ const Machine = (() => {
     }
 
     if (isSPSP) {
-      // SPSP発展（RUSHチャレンジ専用の小丹VS伊藤演出は使わない）
+      // SPSP発展。専用画像があるイベントは、発展直後に一度クリア表示する。
+      const spspEvent = sp.spsp || null;
       Screen.stopVideo();
       Screen.flash("#ff4040", 500);
-      if (S.mode === "normal") AudioMgr.se("kyuin3", 0.55);  // RUSH中は告知音を省略
+      AudioMgr.seStack([
+        { key: "spspImpact", volume: 0.68 },
+        { key: "flash", volume: 0.25, delay: 90 },
+      ], { duckFactor: 0.38, duckMs: 2100 });
       AudioMgr.voice("atsui");
+      if (spspEvent && spspEvent.bg) {
+        Screen.setBg(spspEvent.bg, false);
+        await wait(900);
+      }
       Screen.fxKira("kiraLine1", 2000);
       Screen.glowFlash("gold", 2400);   // SPSP発展：金点灯（激アツ）
-      await Screen.reachTitle("激熱SPSP発展！！", 1800, "spsp");
-      if (sp.bg) Screen.setBg(sp.bg, false);
-      await Screen.telop(sp.lines[0] || "運命の最終局面へ突入！", 1500, "story hot");
+      await Screen.reachTitle(spspEvent ? spspEvent.title : "激熱SPSP発展！！", 1800, "spsp");
+      if (!spspEvent && sp.bg) Screen.setBg(sp.bg, false);
+      await Screen.telop(
+        (spspEvent && spspEvent.lines[0]) || sp.lines[0] || "運命の最終局面へ突入！",
+        1500,
+        "story hot"
+      );
       if (S.mode === "normal") AudioMgr.se("kyuin3", 0.6);  // RUSH中は告知音を省略
       Screen.flash("#ffffff", 350);
       Screen.playVideo("cutinRed", { front: true, ms: 1000, opacity: 0.72 });
       await wait(900);
       if (sp.chars[0]) await Screen.cutin(sp.chars[0], "", 1300, "hot");
-      await Screen.telop(sp.lines[sp.lines.length - 1] || "最後の一撃で決めろ！！", 1400, "story hot");
+      await Screen.telop(
+        (spspEvent && spspEvent.lines[1]) || sp.lines[sp.lines.length - 1] || "最後の一撃で決めろ！！",
+        1400,
+        "story hot"
+      );
       const pressed = await Screen.pushButton(2800);
       if (pressed || true) {
         if (isWin) {
-          AudioMgr.se("flash", 0.6);
-          AudioMgr.se("hit", 0.7);
+          const revival = Math.random() < 0.12;
+          if (revival) {
+            AudioMgr.se("fail", 0.32);
+            Screen.flash("#303858", 450);
+            await wait(650);
+            AudioMgr.seStack([
+              { key: "revivalJackpot", volume: 0.72 },
+              { key: "pushSuccess", volume: 0.48, delay: 170 },
+            ], { duckFactor: 0.24, duckMs: 3000 });
+          } else {
+            AudioMgr.seStack([
+              { key: "pushSuccess", volume: 0.66 },
+              { key: "symbolExplosion", volume: 0.42, delay: 100 },
+            ], { duckFactor: 0.3, duckMs: 2200 });
+          }
           Screen.fxKira("kiraLine2", 1800);
           Screen.glowFlash("red", 1800);   // 当り決着：赤点灯
           Screen.playVideo("gekiha", { front: true, ms: 2200 });  // 「撃破」動画
@@ -599,19 +647,29 @@ const Machine = (() => {
 
   /* ---------- 大当り ---------- */
   // 1セット分（10R等）のラウンド消化
-  async function playSet(setNo, totalSets, rounds, baseIdx) {
+  async function playSet(setNo, totalSets, rounds, baseIdx, bonusArt = false) {
     for (let r = 1; r <= rounds; r++) {
       Screen.jackpotRound(totalSets > 1
         ? `${setNo}セット目 ROUND ${r} / ${rounds}`
         : `ROUND ${r} / ${rounds}`);
-      Screen.jackpotChar(CHARACTERS[(baseIdx + r + setNo) % 8].key);
+      Screen.jackpotChar(CHARACTERS[(baseIdx + r + setNo) % 8].key, { bonus: bonusArt });
       roundCatch = 0;
+      if (bonusArt && r === 1) {
+        AudioMgr.seStack([
+          { key: "secondBonus", volume: 0.58 },
+          { key: "roundStart", volume: 0.24, delay: 180 },
+        ], { duckFactor: 0.48, duckMs: 1700 });
+      } else {
+        AudioMgr.se("roundStart", 0.2);
+      }
+      setTimeout(() => AudioMgr.se("attackerOpen", 0.2), 110);
       Board.attackerOpen = true;
       const start = Date.now();
       while (roundCatch < SPEC.ROUND_CATCH && Date.now() - start < SPEC.ROUND_TIMEOUT_MS) {
         await wait(100);
       }
       Board.attackerOpen = false;
+      AudioMgr.se("attackerClose", 0.18);
       await wait(650);
     }
   }
@@ -642,7 +700,16 @@ const Machine = (() => {
       if (!wasRush) {
         await rushChallengeBattle();
       }
-      AudioMgr.se("fanfare", 0.6);
+      AudioMgr.se("rushCharge", 0.38);
+      await wait(700);
+      AudioMgr.seStack(wasRush ? [
+        { key: "rushContinue", volume: 0.7 },
+        { key: "rainbowFlash", volume: 0.3, delay: 120 },
+      ] : [
+        { key: "rushExplosion", volume: 0.72 },
+        { key: "rushLogo", volume: 0.5, delay: 150 },
+        { key: "rainbowFlash", volume: 0.28, delay: 250 },
+      ], { duckFactor: 0.24, duckMs: 3000 });
       AudioMgr.voice("rush");
       Screen.glowFlash("rainbow", 1800);
       Screen.fxKira("kiraLine2", 1600);
@@ -656,8 +723,17 @@ const Machine = (() => {
     await rushChallengeBattle();
     Screen.lcdMsg(null);
     if (willRush) {
-      AudioMgr.se("flash", 0.6);
-      AudioMgr.se("hit", 0.7);
+      AudioMgr.se("rushCharge", 0.4);
+      await wait(800);
+      AudioMgr.seStack(wasRush ? [
+        { key: "rushContinue", volume: 0.72 },
+        { key: "symbolExplosion", volume: 0.35, delay: 80 },
+        { key: "rainbowFlash", volume: 0.3, delay: 180 },
+      ] : [
+        { key: "rushExplosion", volume: 0.74 },
+        { key: "rushLogo", volume: 0.52, delay: 140 },
+        { key: "rainbowFlash", volume: 0.3, delay: 250 },
+      ], { duckFactor: 0.22, duckMs: 3200 });
       AudioMgr.voice("rush");
       Screen.yakumonoDrop();
       Screen.flash("#ffd23f", 700);
@@ -675,22 +751,26 @@ const Machine = (() => {
   }
 
   // 10R×2の継続をギリギリで告知
-  async function nextBonusReveal() {
+  async function nextBonusReveal(charKey) {
     Screen.lcdMsg("継続なるか…！？", "alert");
     AudioMgr.se("drumroll", 0.5);
     Screen.glowFlash("gold", 2400);
     await wait(2400);
     Screen.lcdMsg(null);
-    AudioMgr.se("fanfare", 0.75);
-    AudioMgr.se("levelup", 0.5);
+    AudioMgr.seStack([
+      { key: "nextBonusBreak", volume: 0.72 },
+      { key: "bonus3000", volume: 0.62, delay: 120 },
+      { key: "nextBonusStinger", volume: 0.3, delay: 320 },
+    ], { duckFactor: 0.2, duckMs: 3800 });
     Screen.flash("#ffd23f", 800);
     Screen.glowFlash("rainbow", 2600);
     jackpotTarget = 2 * 10 * SPEC.ROUND_CATCH * SPEC.ATTACKER_PAY;
+    Screen.jackpotShow("", charKey, { bonus: true });
     Screen.jackpotBalls(jackpotGained, jackpotTarget);
     await Screen.telop("NEXT BONUS！！ 10R×2 約3000個！", 2200, "story hot");
   }
 
-  async function jackpotFlow(symbols, grade, showOdd) {
+  async function jackpotFlow(symbols, grade, showOdd, pattern) {
     S.inJackpot = true;
     S.rushInfoInJackpot = false;
     Screen.confirmBg(false);
@@ -720,11 +800,19 @@ const Machine = (() => {
     S.spins = 0;
     updateCounter();
 
-    // 当りファンファーレ＋筐体フル点灯
+    // 図柄ロック・低音爆発・確定音を重ね、7揃いとRUSH即当りは専用音を追加。
     AudioMgr.stopBgm();
     Screen.lyricsStop();
-    AudioMgr.se("fanfare", 0.7);
-    AudioMgr.se("levelup", 0.55);
+    const jackpotLayers = [
+      { key: "symbolExplosion", volume: 0.72 },
+      { key: "align", volume: 0.34, delay: 70 },
+      { key: "kyuinBoost", volume: 0.26, delay: 150 },
+    ];
+    if (char.num === 7) jackpotLayers.push({ key: "sevenJackpot", volume: 0.72, delay: 110 });
+    if (wasRush && pattern && pattern.type === "quick") {
+      jackpotLayers.push({ key: "rushInstant", volume: 0.65, delay: 60 });
+    }
+    AudioMgr.seStack(jackpotLayers, { duck: false });
     AudioMgr.voice("jackpot");
     Screen.fxKira("kiraLine1", 2500);
     Screen.playVideo("kiraBlue", { ms: 4000 });
@@ -737,13 +825,29 @@ const Machine = (() => {
 
     AudioMgr.playBgm("jackpot", 0.4);
     // 即確定でなければ当落は伏せる（偶数図柄でも「大当り！」表記）
-    Screen.jackpotShow("", char.key);
+    const premiumImg = Math.random() < 0.01 ? PREMIUM_CONFIRM_IMG : null;
+    if (premiumImg) {
+      AudioMgr.seStack([
+        { key: "premium1", volume: 0.72 },
+        { key: "rainbowFlash", volume: 0.38, delay: 100 },
+      ], { duckFactor: 0.24, duckMs: 2600 });
+    }
+    Screen.jackpotShow("", char.key, premiumImg ? { src: premiumImg } : {});
     updateModeUI(); // 右打ちランプ点灯
     $("migiuchi").classList.remove("hidden");
     await wait(1700);
     Screen.lcdMsg(null);
     await wait(1500);
     Screen.lcdMsg(null);
+
+    if (wasRush && S.renchan === 10) {
+      AudioMgr.seStack([
+        { key: "renchan10", volume: 0.76 },
+        { key: "rainbowFlash", volume: 0.34, delay: 180 },
+      ], { duckFactor: 0.2, duckMs: 4200 });
+    } else if (wasRush && [3, 5, 7].includes(S.renchan)) {
+      AudioMgr.se("renchanUp", 0.52);
+    }
 
     jackpotGained = 0;
     jackpotTarget = g.rounds * SPEC.ROUND_CATCH * SPEC.ATTACKER_PAY;
@@ -757,10 +861,9 @@ const Machine = (() => {
     if (grade === "double") {
       // まずRUSH当落 → ギリギリで継続(10R×2)告知 → 2セット目
       await rushJudge(true, judgeImmediate, wasRush);
-      await nextBonusReveal();
-      Screen.jackpotShow("", char.key);
+      await nextBonusReveal(char.key);
       setJackpotRushInfo(true);
-      await playSet(2, g.sets, g.rounds, symbols[0]);
+      await playSet(2, g.sets, g.rounds, symbols[0], true);
       setJackpotRushInfo(false);
     } else if (rushResult) {
       // single / mini：RUSH当落判定
@@ -777,7 +880,8 @@ const Machine = (() => {
     if (!rushResult) await Screen.telop("左打ちに戻してください", 1600, "story");
     Screen.jackpotHide();
 
-    // モード移行
+    // モード移行（リールは必ず表示に戻す）
+    Screen.reelsVisible(true);
     S.mode = nextMode;
     S.modeLeft = rushResult ? SPEC.ST_COUNT : 0;
     S.inJackpot = false;
@@ -822,6 +926,7 @@ const Machine = (() => {
       launchTimer = setInterval(() => {
         if (S.balls <= 0) return;
         updateBalls(-1);
+        AudioMgr.se("ballLaunch", 0.08);
         Board.launch(currentStrength());
       }, 600); // 発射100発/分
     } else if (strength === 0 && launchTimer) {
@@ -866,6 +971,7 @@ const Machine = (() => {
 
   // テスト用に大当り確率を切り替える（表示文字列を返す）
   const PROB_CYCLE = [
+    { normal: 1 / 199.9, rush: 1 / 99.9, label: "1/199.9" },
     { normal: 1 / 349.9, rush: 1 / 99.9, label: "1/349.9" },
     { normal: 1 / 30,    rush: 1 / 30,   label: "1/30" },
     { normal: 1 / 10,    rush: 1 / 10,   label: "1/10" },

@@ -24,6 +24,7 @@ const AudioMgr = (() => {
     reach:   "assets/se/リーチ成立（reach）.wav",
     pseudo:  "assets/se/擬似連・発展（pseudo）.wav",
     kyuin3:  clip(5.45, 6.28),       // 確定・告知音（氾濫.mp3から）
+    align:   clip(0.00, 1.78),       // 図柄が揃った瞬間の当り音（氾濫.mp3から）
     kira:    "assets/se/キラ演出（kira）.wav",
     kira2:   "assets/se/保留変化（kira2）.wav",
     flash:   "assets/se/フラッシュ（flash）.wav",
@@ -39,6 +40,38 @@ const AudioMgr = (() => {
     group:   "assets/se/群予告（group）.wav",
     tsuishi: "assets/se/追試（擬似連スプラッシュ用に新規）.wav",
     wara:    "assets/se/先生バトル敗北（わら！用に新規）.wav",
+    ballLaunch:       "assets/se/玉の発射音.wav",
+    ballPin1:         "assets/se/玉が釘に当たる音.wav",
+    ballPin2:         "assets/se/玉が釘に当たる音2.wav",
+    ballPin3:         "assets/se/玉が釘に当たる音3.wav",
+    ballPin4:         "assets/se/玉が釘に当たる音4.wav",
+    ballRollPins:     "assets/se/玉が複数の釘を転がる音.wav",
+    attackerOpen:     "assets/se/アタッカー開放音.wav",
+    attackerClose:    "assets/se/アタッカー閉鎖音.wav",
+    payout:           "assets/se/賞球払い出し音.wav",
+    reelSpin:         "assets/se/図柄高速回転ループ.wav",
+    spspImpact:       "assets/se/SPSP発展衝撃音.wav",
+    roundStart:       "assets/se/ラウンド開始音.wav",
+    lastChance:       "assets/se/残り回数危機音.wav",
+    premium1:         "assets/se/1%プレミア画像用.wav",
+    symbolExplosion:  "assets/se/図柄揃い爆発音.wav",
+    sevenJackpot:     "assets/se/7図柄揃い専用.wav",
+    pushSuccess:      "assets/se/PUSH当落成功.wav",
+    revivalJackpot:   "assets/se/復活大当り.wav",
+    rushCharge:       "assets/se/RUSH突入前の溜め.wav",
+    rushExplosion:    "assets/se/RUSH突入爆発.wav",
+    rushLogo:         "assets/se/RUSHロゴ出現音.wav",
+    bonus3000:        "assets/se/3000 BONUS告知.wav",
+    nextBonusStinger: "assets/se/NEXT BONUS告知音.wav",
+    nextBonusBreak:   "assets/se/NEXT BONUS表示.wav",
+    secondBonus:      "assets/se/2セット目開始.wav",
+    rushInstant:      "assets/se/RUSH即当り.wav",
+    rushContinue:     "assets/se/RUSH継続確定.wav",
+    renchanUp:        "assets/se/連チャン上昇.wav",
+    renchan10:        "assets/se/10連到達専用.wav",
+    rainbowFlash:     "assets/se/虹フラッシュ.wav",
+    yakumonoDrop:     "assets/se/役物落下.wav",
+    kyuinBoost:       "assets/se/キュイン強化版.wav",
   };
   // キャラボイス: VOICEVOX（ずんだもん）
   const VOICE_PATHS = {
@@ -51,6 +84,8 @@ const AudioMgr = (() => {
   let enabled = true;
   let currentBgm = null;
   let currentBgmKey = null;
+  let currentBgmVolume = 0.35;
+  let bgmDuckTimer = null;
   const seCache = {};
   let audioCtx = null;
   const bufferCache = {};
@@ -128,7 +163,8 @@ const AudioMgr = (() => {
     warmSeSprites();
     const a = new Audio(BGM_PATHS[key]);
     a.loop = true;
-    a.volume = Math.min(1, volume);
+    currentBgmVolume = Math.min(1, volume);
+    a.volume = currentBgmVolume;
     // 再生に失敗したらキーを捨て、次のplayBgm呼び出しで再試行できるようにする
     // （キーが残ると同キー早期returnでBGMが止まったままになる）
     a.play().catch(() => { if (currentBgm === a) { currentBgm = null; currentBgmKey = null; } });
@@ -138,6 +174,7 @@ const AudioMgr = (() => {
 
   function stopBgm() {
     if (currentBgm) { currentBgm.pause(); currentBgm = null; }
+    if (bgmDuckTimer) { clearTimeout(bgmDuckTimer); bgmDuckTimer = null; }
     currentBgmKey = null;
   }
 
@@ -188,6 +225,28 @@ const AudioMgr = (() => {
     else playFile(def, volume);
   }
 
+  function duckBgm(factor = 0.42, durationMs = 1800) {
+    if (!currentBgm) return;
+    currentBgm.volume = Math.max(0, Math.min(1, currentBgmVolume * factor));
+    if (bgmDuckTimer) clearTimeout(bgmDuckTimer);
+    const target = currentBgm;
+    bgmDuckTimer = setTimeout(() => {
+      if (currentBgm === target) currentBgm.volume = currentBgmVolume;
+      bgmDuckTimer = null;
+    }, durationMs);
+  }
+
+  // 複数SEを数十～数百msずらして積み、低音・確定音・高音を分離して聞かせる。
+  function seStack(layers, opts = {}) {
+    if (!enabled || !Array.isArray(layers)) return;
+    if (opts.duck !== false) duckBgm(opts.duckFactor || 0.42, opts.duckMs || 1800);
+    for (const layer of layers) {
+      const play = () => se(layer.key, layer.volume == null ? 0.5 : layer.volume);
+      if (layer.delay > 0) setTimeout(play, layer.delay);
+      else play();
+    }
+  }
+
   function voice(key, volume = 0.75) {
     return;
   }
@@ -206,5 +265,5 @@ const AudioMgr = (() => {
     return enabled;
   }
 
-  return { playBgm, stopBgm, bgmTime, se, voice, toggle, unlock, get enabled() { return enabled; } };
+  return { playBgm, stopBgm, bgmTime, se, seStack, duckBgm, voice, toggle, unlock, get enabled() { return enabled; } };
 })();

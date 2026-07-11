@@ -30,6 +30,9 @@ const Board = (() => {
   let balls = [];
   let denchuOpen = false;
   let attackerOpen = false;
+  let physicsSound = true;
+  let lastPinSoundAt = 0;
+  let pinSoundIndex = 0;
 
   // 玉スプライト（球体部分: x244-424, y92-272）
   const ballSprite = new Image();
@@ -261,10 +264,23 @@ const Board = (() => {
           b.y = p.y + ny * rr;
           const dot = b.vx * nx + b.vy * ny;
           if (dot < 0) {
+            const impact = -dot;
             // 法線成分は大きく減衰（低反発）、接線成分は転がりとして保持
             const tx = b.vx - dot * nx, ty = b.vy - dot * ny;
             b.vx = tx * 0.97 - nx * dot * REST + (Math.random() - 0.5) * 0.3;
             b.vy = ty * 0.97 - ny * dot * REST;
+            if (physicsSound) {
+              if (!b._rollSound && Math.random() < 0.16) {
+                b._rollSound = true;
+                AudioMgr.se("ballRollPins", 0.035);
+              }
+              const now = performance.now();
+              if (impact > 1.1 && now - lastPinSoundAt > 85 && Math.random() < 0.38) {
+                const keys = ["ballPin1", "ballPin2", "ballPin3", "ballPin4"];
+                AudioMgr.se(keys[pinSoundIndex++ % keys.length], Math.min(0.065, 0.025 + impact * 0.008));
+                lastPinSoundAt = now;
+              }
+            }
           }
         }
       }
@@ -444,6 +460,8 @@ const Board = (() => {
     const savedBalls = balls;
     const savedHandlers = { ...handlers };
     const savedDenchu = denchuOpen, savedAttacker = attackerOpen;
+    const savedPhysicsSound = physicsSound;
+    physicsSound = false;
     denchuOpen = !!opts.denchu;
     attackerOpen = !!opts.attacker;
     let heso = 0, out = 0, denchu = 0, att = 0;
@@ -467,6 +485,7 @@ const Board = (() => {
     Object.assign(handlers, savedHandlers);
     denchuOpen = savedDenchu;
     attackerOpen = savedAttacker;
+    physicsSound = savedPhysicsSound;
     return res;
   }
 

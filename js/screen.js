@@ -86,6 +86,10 @@ const Screen = (() => {
   }
 
   function startAll() {
+    // 変動開始時は必ずリールを表示に戻す
+    // （RUSH当落演出などで reelsVisible(false) のまま残る事故を防ぐ）
+    $("reels").style.opacity = "1";
+    AudioMgr.se("reelSpin", 0.11);
     for (let i = 0; i < 3; i++) {
       reels[i].classList.remove("tenpai", "win");
       startReel(i);
@@ -340,22 +344,30 @@ const Screen = (() => {
   }
 
   /* ---------- 大当り画面 ---------- */
-  function bigCharImg(charKey) {
-    return (CONFIRM_CHAR_IMGS && CONFIRM_CHAR_IMGS[charKey]) ||
-           (charByKey(charKey) || CHARACTERS[0]).img;
+  function jackpotArt(charKey, opts = {}) {
+    const bonusSrc = opts.bonus && BONUS_CHAR_IMGS && BONUS_CHAR_IMGS[charKey];
+    const src = opts.src || bonusSrc ||
+      (CONFIRM_CHAR_IMGS && CONFIRM_CHAR_IMGS[charKey]) ||
+      (charByKey(charKey) || CHARACTERS[0]).img;
+    return { src, scene: !!opts.src || !!bonusSrc };
   }
-  function jackpotShow(title, charKey) {
+  function applyJackpotArt(charKey, opts = {}) {
+    const art = jackpotArt(charKey, opts);
+    const bg = $("jp-charbg");
+    bg.src = art.src;
+    bg.classList.toggle("bonus-scene", art.scene);
+    bg.style.animation = "none";
+    void bg.offsetWidth;
+    bg.style.animation = "";
+  }
+  function jackpotShow(title, charKey, opts = {}) {
     const jl = $("jackpot-layer");
     jl.classList.remove("hidden");
     $("jp-title").textContent = "";
     $("jp-round").textContent = "";
     $("jp-balls").textContent = "";
-    // 当りキャラの確定演出用画像を大きく背景表示
-    const bg = $("jp-charbg");
-    bg.src = bigCharImg(charKey);
-    bg.style.animation = "none";
-    void bg.offsetWidth;
-    bg.style.animation = "";
+    // 当りキャラ、またはチャレンジ突破後の02一枚絵を背景表示
+    applyJackpotArt(charKey, opts);
   }
   function jackpotRound(text) { $("jp-round").textContent = text; }
   function jackpotBalls(value, target) {
@@ -370,14 +382,15 @@ const Screen = (() => {
       ? `${digitHtml(digits, "jp-ball-digit jp-ball-num")}<span class="jp-ball-slash">/</span>${digitHtml(targetDigits, "jp-ball-digit jp-ball-den")}`
       : digitHtml(digits, "jp-ball-digit jp-ball-num");
   }
-  function jackpotChar(charKey) {
-    const bg = $("jp-charbg");
-    if (bg) bg.src = bigCharImg(charKey);
+  function jackpotChar(charKey, opts = {}) {
+    applyJackpotArt(charKey, opts);
   }
   function jackpotHide() {
     const jl = $("jackpot-layer");
     jl.classList.add("hidden");
     jl.classList.remove("rush-info-only");
+    const bg = $("jp-charbg");
+    if (bg) bg.classList.remove("bonus-scene");
   }
 
   let yakumonoTimer = null;
@@ -387,6 +400,7 @@ const Screen = (() => {
     cab.classList.remove("yakumono-drop");
     void cab.offsetWidth;
     cab.classList.add("yakumono-drop");
+    AudioMgr.se("yakumonoDrop", 0.72);
     if (yakumonoTimer) clearTimeout(yakumonoTimer);
     yakumonoTimer = setTimeout(() => cab.classList.remove("yakumono-drop"), ms);
   }

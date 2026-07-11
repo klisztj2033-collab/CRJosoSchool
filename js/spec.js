@@ -6,7 +6,7 @@
 
 const SPEC = {
   // 大当り確率
-  NORMAL_PROB: 1 / 349.9,   // 通常時（ヘソ）
+  NORMAL_PROB: 1 / 199.9,   // 通常時（ヘソ）
   RUSH_PROB:   1 / 99.9,    // RUSH中（電チュー・高確率）
 
   // 振り分け（ヘソ）
@@ -229,6 +229,11 @@ const VIDEO_FX = {
   vs3d:      "movie/VS３D文字アニメーション.mp4",         // 生徒会長決戦VS
 };
 
+/* SPSP専用のイベント1枚絵 */
+const SPSP_EVENT_IMGS = {
+  gibaPc: "imagin/ギバ先生_パソコン室.png",
+};
+
 /* ---------- SPリーチ定義 ----------
  * winRate は「当たり変動のうちこのリーチが選ばれた際の表示強度」の目安 */
 const SP_REACHES = [
@@ -286,6 +291,14 @@ const SP_REACHES = [
       "小島「これ、ニコニコで話題の神実況なんだよ」",
       "廊下に足音が……！ 先生に見つかる前に画面を消せるか──！？",
     ],
+    spsp: {
+      title: "緊急SPSP ギバ先生 パソコン室巡回",
+      bg: SPSP_EVENT_IMGS.gibaPc,
+      lines: [
+        "ドアが開いた。ギバ先生がパソコン室へ入ってきた！",
+        "閲覧履歴を消して全員退室できれば突破──！？",
+      ],
+    },
   },
 ];
 
@@ -309,11 +322,29 @@ const CONFIRM_CHAR_IMGS = {
   akagami:   "imagin/赤上_大当り確定演出用_t.png",
   ishikawa:  "imagin/石川_大当り確定演出用_t.png",
   nishiyama: "imagin/西山_大当り確定演出用_t.png",
-  kotan:     "imagin/小丹_大当り確定演出用_t.png",
+  kotan:     "imagin/小丹_大当り確定演出用_t.png.fixed.png",
   chinone:   "imagin/ちのね_大当り確定演出用_t.png",
   yabuki:    "imagin/矢吹_大当り確定演出用_t.png",
   kojima:    "imagin/小島_大当り確定演出用_t.png",
 };
+
+/* チャレンジ突破後、2セット目のボーナスで使う一枚絵 */
+const BONUS_CHAR_IMGS = {
+  kuno:      "imagin/久野02_大当たり確定演出.png",
+  ishikawa:  "imagin/石川02_大当り確定演出用.png",
+  nishiyama: "imagin/西山02_大当り確定演出用.png",
+  kotan:     "imagin/小丹02_大当り確定演出用.png",
+  yabuki:    "imagin/矢吹02_大当り確定演出用.png",
+  kojima:    "imagin/小島02_大当り確定演出用.png",
+};
+
+/* 先生バトル突破時の確定カット */
+const TEACHER_CONFIRM_IMGS = {
+  ito: "imagin/伊藤先生_大当り確定演出用.png",
+};
+
+/* 大当り開始時に1%で出現するプレミア一枚絵 */
+const PREMIUM_CONFIRM_IMG = "imagin/少女_大当り確定演出用_表示確率1%.png";
 
 /* 文字系画像（演出中に大きくオーバーレイ表示） */
 const TEXT_IMGS = {
