@@ -322,7 +322,7 @@ const CONFIRM_CHAR_IMGS = {
   akagami:   "imagin/赤上_大当り確定演出用_t.png",
   ishikawa:  "imagin/石川_大当り確定演出用_t.png",
   nishiyama: "imagin/西山_大当り確定演出用_t.png",
-  kotan:     "imagin/小丹_大当り確定演出用_t.png.fixed.png",
+  kotan:     "imagin/小丹_大当り確定演出用_t.png",
   chinone:   "imagin/ちのね_大当り確定演出用_t.png",
   yabuki:    "imagin/矢吹_大当り確定演出用_t.png",
   kojima:    "imagin/小島_大当り確定演出用_t.png",
